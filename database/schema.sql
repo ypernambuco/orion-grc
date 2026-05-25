@@ -131,6 +131,64 @@ grant insert on
     public.riscos
 to anon;
 
+do $$
+declare
+    target_table text;
+    policy_name text;
+begin
+    foreach target_table in array array[
+        'areas',
+        'documentos',
+        'riscos',
+        'perfis',
+        'usuarios',
+        'evidencias',
+        'historico_eventos'
+    ]
+    loop
+        policy_name := 'anon_select_' || target_table;
+
+        if not exists (
+            select 1
+            from pg_policies
+            where schemaname = 'public'
+              and tablename = target_table
+              and policyname = policy_name
+        ) then
+            execute format(
+                'create policy %I on public.%I for select to anon using (true)',
+                policy_name,
+                target_table
+            );
+        end if;
+    end loop;
+end $$;
+
+do $$
+declare
+    target_table text;
+    policy_name text;
+begin
+    foreach target_table in array array['areas', 'documentos', 'riscos']
+    loop
+        policy_name := 'anon_insert_' || target_table;
+
+        if not exists (
+            select 1
+            from pg_policies
+            where schemaname = 'public'
+              and tablename = target_table
+              and policyname = policy_name
+        ) then
+            execute format(
+                'create policy %I on public.%I for insert to anon with check (true)',
+                policy_name,
+                target_table
+            );
+        end if;
+    end loop;
+end $$;
+
 comment on table perfis is
     'Perfis preparados para controle de acesso futuro: admin, governanca, juridico, gestor_area, diretoria e auditoria.';
 comment on table usuarios is
