@@ -2,22 +2,10 @@ import pandas as pd
 import streamlit as st
 
 from services.supabase_client import get_supabase
+from services.ui import apply_theme, render_hero, render_sidebar
 
 
 st.set_page_config(page_title="ORION GRC | Areas", layout="wide")
-
-
-def apply_theme() -> None:
-    st.markdown(
-        """
-        <style>
-            .stApp { background: #0f172a; color: #e5e7eb; }
-            [data-testid="stSidebar"] { background: #020617; border-right: 1px solid #1e293b; }
-            [data-testid="stSidebarNav"] { display: none; }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 def load_areas() -> pd.DataFrame:
@@ -33,42 +21,56 @@ def load_areas() -> pd.DataFrame:
 
 
 apply_theme()
-
-with st.sidebar:
-    st.title("Vaekor Labs")
-    st.caption("ORION GRC")
-    st.divider()
-    st.page_link("app.py", label="Inicio")
-    st.page_link("pages/dashboard.py", label="Dashboard")
-    st.page_link("pages/areas.py", label="Areas")
-    st.page_link("pages/documentos.py", label="Documentos")
-    st.page_link("pages/riscos.py", label="Riscos")
-
-st.title("ORION GRC")
-st.subheader("Areas")
+render_sidebar("Areas")
+render_hero(
+    "Governance Units",
+    "Areas corporativas",
+    "Cadastre e acompanhe as areas responsaveis por documentos, controles, riscos e pendencias.",
+)
 
 supabase = get_supabase()
 if supabase is None:
     st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets.")
 
-with st.form("form_area", clear_on_submit=True):
-    nome = st.text_input("Nome da area")
-    submitted = st.form_submit_button("Cadastrar area")
+form_col, insight_col = st.columns([1.1, 0.9])
+with form_col:
+    st.markdown("### Nova area")
+    st.markdown(
+        '<p class="orion-section">Use areas como donos operacionais de documentos e riscos.</p>',
+        unsafe_allow_html=True,
+    )
+    with st.form("form_area", clear_on_submit=True):
+        nome = st.text_input("Nome da area")
+        submitted = st.form_submit_button("Cadastrar area")
 
-    if submitted:
-        if supabase is None:
-            st.error("Supabase nao configurado.")
-        elif not nome.strip():
-            st.error("Informe o nome da area.")
-        else:
-            try:
-                supabase.table("areas").insert({"nome": nome.strip()}).execute()
-                st.success("Area cadastrada com sucesso.")
-                st.rerun()
-            except Exception as exc:
-                st.error(f"Nao foi possivel cadastrar a area: {exc}")
+        if submitted:
+            if supabase is None:
+                st.error("Supabase nao configurado.")
+            elif not nome.strip():
+                st.error("Informe o nome da area.")
+            else:
+                try:
+                    supabase.table("areas").insert({"nome": nome.strip()}).execute()
+                    st.success("Area cadastrada com sucesso.")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f"Nao foi possivel cadastrar a area: {exc}")
+
+with insight_col:
+    st.markdown("### Modelo demo")
+    st.markdown(
+        '<p class="orion-section">'
+        "A demo profissional usa Financeiro, Juridico, RH, TI e Operacoes "
+        "para mostrar governanca por responsavel."
+        "</p>",
+        unsafe_allow_html=True,
+    )
 
 st.markdown("### Areas cadastradas")
+st.markdown(
+    '<p class="orion-table-note">Base de areas usada nos filtros, formularios e indicadores.</p>',
+    unsafe_allow_html=True,
+)
 areas_df = load_areas()
 if areas_df.empty:
     st.info("Nenhuma area cadastrada.")

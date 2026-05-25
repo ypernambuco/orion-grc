@@ -1,6 +1,6 @@
 # ORION GRC
 
-Operational Governance, Risk & Compliance platform focused on efficiency, auditing and document management for small businesses.
+ORION GRC is a SaaS-style Governance, Risk & Compliance demo for small businesses that need a simple way to centralize documents, monitor risks and understand operational efficiency by area.
 
 Developed by Vaekor Labs.
 
@@ -8,7 +8,127 @@ Developed by Vaekor Labs.
 
 ## Live Demo
 
-https://orion-grc.streamlit.app/
+[https://orion-grc.streamlit.app/](https://orion-grc.streamlit.app/)
+
+---
+
+## Status
+
+Professional MVP demo online and validated in production.
+
+Current scope:
+
+- Public demo without authentication
+- No role-based access control yet
+- No AI features yet
+- Supabase/PostgreSQL persistence
+- Demo seed available, but not executed automatically
+
+---
+
+## Product Vision
+
+ORION GRC helps small businesses bring governance into one operational workspace.
+
+The product is designed to help teams:
+
+- Centralize contracts, internal policies, audit files, KPI reports and monitoring evidence
+- Track document expiration, pending reviews and missing evidence
+- Monitor operational, contractual, internal control and information security risks
+- Visualize efficiency by Finance, Legal, HR, IT and Operations
+- Support governance routines, audit preparation and executive follow-up
+
+---
+
+## Problem Solved
+
+Small businesses often manage governance through disconnected spreadsheets, folders and informal reminders. This makes it hard to know which documents are expired, which risks need attention and which areas are operating outside the expected control flow.
+
+ORION GRC turns this into a single dashboard with documents, areas, risks and operational KPIs.
+
+---
+
+## Screenshots
+
+Screenshots will be added after the next visual capture cycle.
+
+| Screen | Preview |
+| --- | --- |
+| Dashboard | `docs/screenshots/dashboard.png` |
+| Areas | `docs/screenshots/areas.png` |
+| Documents | `docs/screenshots/documentos.png` |
+| Risks | `docs/screenshots/riscos.png` |
+
+---
+
+## Features
+
+- Executive governance dashboard
+- General conformity KPI
+- Expired and pending document monitoring
+- Risk scoring by probability and impact
+- Risk classification: Low, Medium, High and Critical
+- Area-based tracking
+- Document lifecycle management
+- Operational efficiency by area
+- Plotly analytics dashboards
+- Supabase cloud persistence
+- Future-ready database structure for profiles, users, evidence and audit history
+
+---
+
+## Modules
+
+### Dashboard
+
+- General conformity
+- Expired documents
+- Pending documents
+- Critical risks
+- Risks by area
+- Documents by status
+- Operational efficiency by area
+
+### Areas
+
+- Area registration
+- Area listing
+- Foundation for area ownership and future access rules
+
+### Documents
+
+- Document registration
+- Category, owner, expiration date and status
+- Support for contracts, policies, procedures, reports, flowcharts, KPIs and audit files
+
+### Risks
+
+- Risk registration
+- Automatic score calculation
+- Impact and probability sliders
+- Operational prioritization by classification
+
+---
+
+## Demo Data
+
+Professional demo data is available in:
+
+```text
+database/seed_demo.sql
+```
+
+The seed includes fictional data for:
+
+- Financeiro
+- Juridico
+- RH
+- TI
+- Operacoes
+
+It includes realistic documents such as contracts, internal policies, monitoring reports, flowcharts, KPIs and audit documents. It also includes realistic risks such as document expiration, internal control failure, missing evidence, contractual risk, operational risk and information security risk.
+
+The seed is intentionally manual. It is not executed automatically by the app.
 
 ---
 
@@ -21,156 +141,139 @@ https://orion-grc.streamlit.app/
 
 ---
 
-## Configuracao
+## Setup
 
-1. Crie um ambiente virtual:
+1. Create a virtual environment:
 
 ```bash
 python -m venv .venv
 ```
 
-2. Ative o ambiente virtual e instale as dependencias:
+2. Activate the environment and install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Copie o arquivo de exemplo de ambiente:
+3. Copy the environment example:
 
 ```bash
 cp .env.example .env
 ```
 
-4. Preencha as variaveis no arquivo `.env`:
+4. Fill `.env` with the Supabase project URL and anon public key:
 
 ```env
 SUPABASE_URL=
 SUPABASE_KEY=
 ```
 
-Use a URL do projeto Supabase e a chave `anon public`.
+Use the Supabase `anon public` key only.
 
-Nao use `service_role` no app.
+Do not use `service_role` in the app.
 
-No Streamlit Cloud, configure as mesmas variaveis em `st.secrets`:
+On Streamlit Cloud, configure the same values in `st.secrets`:
 
 ```toml
-SUPABASE_URL = "seu-projeto-url"
-SUPABASE_KEY = "sua-chave-anon-public"
+SUPABASE_URL = "your-project-url"
+SUPABASE_KEY = "your-anon-public-key"
 ```
 
-Para deploy no Streamlit Community Cloud, use:
+5. Execute the database schema in Supabase SQL Editor:
 
-- Repository: `ypernambuco/orion-grc`
-- Branch: `main`
-- Main file path: `app.py`
+```text
+database/schema.sql
+```
 
-Nao envie `.env` para o repositorio. O app le variaveis locais via `.env` e, no Streamlit Cloud, usa `st.secrets`.
+6. Optionally execute the manual demo seed:
 
-5. Execute o SQL em `database/schema.sql` no SQL Editor do Supabase.
+```text
+database/seed_demo.sql
+```
 
-6. Rode o projeto:
+7. Run locally:
 
 ```bash
 streamlit run app.py
 ```
 
----
+For Streamlit Community Cloud:
 
-## Features
+- Repository: `ypernambuco/orion-grc`
+- Branch: `main`
+- Main file path: `app.py`
 
-- Governance dashboard
-- Risk classification
-- Document lifecycle management
-- Operational efficiency KPIs
-- Area-based tracking
-- Supabase cloud persistence
-- Plotly analytics dashboards
-- Future-ready access control architecture
+Never commit `.env`, credentials or Supabase secrets.
 
 ---
 
-## Modulos
+## Security Notes
 
-### Dashboard
-- conformidade geral
-- documentos vencidos
-- documentos pendentes
-- riscos criticos
-- eficiencia por area
-- graficos operacionais
-
-### Areas
-- cadastro de areas
-- listagem de areas
-
-### Documentos
-- cadastro documental
-- area responsavel
-- vencimento
-- status
-- acompanhamento operacional
-
-### Riscos
-- classificacao de risco
-- calculo automatico
-- impacto e probabilidade
-- priorizacao operacional
+- `.env` must remain ignored by Git
+- Supabase credentials must be stored locally or in `st.secrets`
+- The app rejects `service_role` keys
+- Authentication is intentionally not implemented in this version
+- Role-based access control is intentionally not implemented in this version
 
 ---
 
-## Arquitetura futura de acesso
+## Future Access Architecture
 
-Esta V1 nao implementa login, mas o banco ja deixa preparada a base para controle por perfil e area.
+This version does not implement login, but the database already prepares the foundation for future access control by profile and area.
 
-Perfis planejados:
+Planned profiles:
 
-- admin: acesso total
-- governanca: todas as areas, documentos e riscos
-- juridico: documentos e riscos juridicos
-- gestor_area: apenas a propria area
-- diretoria: dashboards e KPIs gerais
-- auditoria: documentos, evidencias e historico
+- admin: full access
+- governanca: all areas, documents and risks
+- juridico: legal documents and legal risks
+- gestor_area: own area only
+- diretoria: dashboards and general KPIs
+- auditoria: documents, evidence and history
 
-O schema inclui tabelas futuras para:
+The schema includes future-ready tables for:
+
 - perfis
 - usuarios
 - evidencias
 - historico_eventos
 
-A coluna `auth_user_id` em `usuarios` fica opcional nesta V1 e podera futuramente ser integrada ao `auth.users.id` do Supabase.
+The optional `auth_user_id` column in `usuarios` can be connected to `auth.users.id` when authentication is implemented.
 
 ---
 
-## Classificacao de riscos
+## Risk Classification
 
-- 1 a 4: Baixo
-- 5 a 9: Medio
-- 10 a 15: Alto
-- 16 a 25: Critico
+- 1 to 4: Baixo
+- 5 to 9: Medio
+- 10 to 15: Alto
+- 16 to 25: Critico
 
 ---
 
 ## Roadmap
 
-- [x] Estrutura inicial do projeto
-- [x] Integracao com Supabase
-- [x] Dashboard inicial
-- [x] Gestao documental
-- [x] Gestao de riscos
-- [ ] Autenticacao
-- [ ] Controle de acesso por perfil
-- [ ] Multiempresa
-- [ ] Auditoria avancada
-- [ ] Alertas automaticos
-- [ ] Upload de evidencias
-- [ ] Historico de alteracoes
-- [ ] Dashboard executivo avancado
-- [ ] IA operacional
-- [ ] Visualizacao em grafo operacional
+- [x] Initial project structure
+- [x] Supabase integration
+- [x] Professional SaaS-style presentation
+- [x] Dashboard MVP
+- [x] Area management
+- [x] Document management
+- [x] Risk management
+- [x] Manual professional demo seed
+- [x] Production demo on Streamlit Cloud
+- [ ] Screenshot assets for README
+- [ ] Authentication
+- [ ] Role-based access control
+- [ ] Multi-company workspace
+- [ ] Evidence upload
+- [ ] Advanced audit trail
+- [ ] Automated alerts
+- [ ] Advanced executive dashboard
+- [ ] Operational AI assistant
+- [ ] Operational graph visualization
 
 ---
 
-## Licenca
+## License
 
 MIT License

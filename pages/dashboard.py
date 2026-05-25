@@ -3,28 +3,10 @@ import plotly.express as px
 import streamlit as st
 
 from services.supabase_client import get_supabase
+from services.ui import apply_theme, render_hero, render_sidebar
 
 
 st.set_page_config(page_title="ORION GRC | Dashboard", layout="wide")
-
-
-def apply_theme() -> None:
-    st.markdown(
-        """
-        <style>
-            .stApp { background: #0f172a; color: #e5e7eb; }
-            [data-testid="stSidebar"] { background: #020617; border-right: 1px solid #1e293b; }
-            [data-testid="stSidebarNav"] { display: none; }
-            div[data-testid="stMetric"] {
-                background: #111827;
-                border: 1px solid #1f2937;
-                border-radius: 8px;
-                padding: 18px;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 def classify_expired(df: pd.DataFrame) -> pd.Series:
@@ -91,19 +73,15 @@ def build_area_efficiency(df: pd.DataFrame) -> pd.DataFrame:
 
 
 apply_theme()
-
-with st.sidebar:
-    st.title("Vaekor Labs")
-    st.caption("ORION GRC")
-    st.divider()
-    st.page_link("app.py", label="Inicio")
-    st.page_link("pages/dashboard.py", label="Dashboard")
-    st.page_link("pages/areas.py", label="Areas")
-    st.page_link("pages/documentos.py", label="Documentos")
-    st.page_link("pages/riscos.py", label="Riscos")
-
-st.title("ORION GRC")
-st.subheader("Dashboard executivo")
+render_sidebar("Dashboard")
+render_hero(
+    "Executive Overview",
+    "Dashboard executivo",
+    (
+        "Indicadores consolidados para entender conformidade documental, "
+        "riscos criticos e eficiencia operacional por area."
+    ),
+)
 
 areas_df, documentos_df, riscos_df = load_data()
 documentos_df = normalize_area_name(documentos_df)
@@ -149,25 +127,38 @@ metric_cols[3].metric("Riscos criticos", riscos_criticos)
 chart_cols = st.columns(2)
 with chart_cols[0]:
     st.markdown("### Riscos por area")
+    st.markdown(
+        '<p class="orion-section">Mapa de concentracao para priorizacao gerencial.</p>',
+        unsafe_allow_html=True,
+    )
     if not riscos_df.empty and "area" in riscos_df:
         riscos_area = riscos_df.groupby("area", as_index=False).size()
         fig = px.bar(riscos_area, x="area", y="size", labels={"size": "Riscos", "area": "Area"})
-        fig.update_layout(template="plotly_dark", paper_bgcolor="#0f172a", plot_bgcolor="#111827")
+        fig.update_traces(marker_color="#38bdf8")
+        fig.update_layout(template="plotly_dark", paper_bgcolor="#0b1120", plot_bgcolor="#111827")
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Nenhum risco cadastrado.")
 
 with chart_cols[1]:
     st.markdown("### Documentos por status")
+    st.markdown(
+        '<p class="orion-section">Distribuicao do ciclo documental por situacao atual.</p>',
+        unsafe_allow_html=True,
+    )
     if not documentos_df.empty and "status" in documentos_df:
         status_df = documentos_df.groupby("status", as_index=False).size()
         fig = px.pie(status_df, names="status", values="size", hole=0.45)
-        fig.update_layout(template="plotly_dark", paper_bgcolor="#0f172a", plot_bgcolor="#111827")
+        fig.update_layout(template="plotly_dark", paper_bgcolor="#0b1120", plot_bgcolor="#111827")
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Nenhum documento cadastrado.")
 
 st.markdown("### Eficiencia por area")
+st.markdown(
+    '<p class="orion-section">Percentual estimado de documentos vigentes e fora de pendencia por area.</p>',
+    unsafe_allow_html=True,
+)
 efficiency_df = build_area_efficiency(documentos_df)
 if not efficiency_df.empty:
     fig = px.bar(
@@ -178,8 +169,8 @@ if not efficiency_df.empty:
         labels={"area": "Area", "eficiencia": "Eficiencia (%)"},
         range_y=[0, 100],
     )
-    fig.update_traces(texttemplate="%{text}%", textposition="outside")
-    fig.update_layout(template="plotly_dark", paper_bgcolor="#0f172a", plot_bgcolor="#111827")
+    fig.update_traces(texttemplate="%{text}%", textposition="outside", marker_color="#22c55e")
+    fig.update_layout(template="plotly_dark", paper_bgcolor="#0b1120", plot_bgcolor="#111827")
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("Cadastre documentos por area para calcular eficiencia operacional.")

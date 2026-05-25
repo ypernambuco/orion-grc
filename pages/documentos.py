@@ -2,25 +2,23 @@ import pandas as pd
 import streamlit as st
 
 from services.supabase_client import get_supabase
+from services.ui import apply_theme, render_hero, render_sidebar
 
 
 st.set_page_config(page_title="ORION GRC | Documentos", layout="wide")
 
 STATUS_OPTIONS = ["Vigente", "Pendente", "Vencido", "Em revisao"]
-CATEGORY_OPTIONS = ["Politica", "Procedimento", "Norma", "Controle", "Relatorio", "Juridico"]
-
-
-def apply_theme() -> None:
-    st.markdown(
-        """
-        <style>
-            .stApp { background: #0f172a; color: #e5e7eb; }
-            [data-testid="stSidebar"] { background: #020617; border-right: 1px solid #1e293b; }
-            [data-testid="stSidebarNav"] { display: none; }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+CATEGORY_OPTIONS = [
+    "Contrato",
+    "Politica",
+    "Procedimento",
+    "Controle",
+    "Relatorio",
+    "Fluxograma",
+    "KPI",
+    "Auditoria",
+    "Juridico",
+]
 
 
 def load_areas() -> list[dict]:
@@ -58,19 +56,15 @@ def load_documentos() -> pd.DataFrame:
 
 
 apply_theme()
-
-with st.sidebar:
-    st.title("Vaekor Labs")
-    st.caption("ORION GRC")
-    st.divider()
-    st.page_link("app.py", label="Inicio")
-    st.page_link("pages/dashboard.py", label="Dashboard")
-    st.page_link("pages/areas.py", label="Areas")
-    st.page_link("pages/documentos.py", label="Documentos")
-    st.page_link("pages/riscos.py", label="Riscos")
-
-st.title("ORION GRC")
-st.subheader("Documentos")
+render_sidebar("Documentos")
+render_hero(
+    "Document Lifecycle",
+    "Gestao documental",
+    (
+        "Controle contratos, politicas, relatorios, evidencias e documentos "
+        "de auditoria com dono, vencimento e status operacional."
+    ),
+)
 
 supabase = get_supabase()
 areas = load_areas()
@@ -79,14 +73,19 @@ area_options = {area["nome"]: area["id"] for area in areas}
 if supabase is None:
     st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets.")
 
+st.markdown("### Novo documento")
+st.markdown(
+    '<p class="orion-section">Registre itens que precisam de monitoramento, revisao ou evidencia.</p>',
+    unsafe_allow_html=True,
+)
 with st.form("form_documento", clear_on_submit=True):
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     nome = col1.text_input("Nome")
     categoria = col2.selectbox("Categoria", CATEGORY_OPTIONS)
-    area_nome = col1.selectbox("Area", list(area_options.keys()) or ["Cadastre uma area primeiro"])
-    responsavel = col2.text_input("Responsavel")
-    vencimento = col1.date_input("Vencimento")
-    status = col2.selectbox("Status", STATUS_OPTIONS)
+    area_nome = col3.selectbox("Area", list(area_options.keys()) or ["Cadastre uma area primeiro"])
+    responsavel = col1.text_input("Responsavel")
+    vencimento = col2.date_input("Vencimento")
+    status = col3.selectbox("Status", STATUS_OPTIONS)
 
     submitted = st.form_submit_button("Cadastrar documento")
     if submitted:
@@ -114,6 +113,10 @@ with st.form("form_documento", clear_on_submit=True):
                 st.error(f"Nao foi possivel cadastrar o documento: {exc}")
 
 st.markdown("### Documentos cadastrados")
+st.markdown(
+    '<p class="orion-table-note">Visao operacional por area, responsavel, vencimento e status.</p>',
+    unsafe_allow_html=True,
+)
 documentos_df = load_documentos()
 if documentos_df.empty:
     st.info("Nenhum documento cadastrado.")
