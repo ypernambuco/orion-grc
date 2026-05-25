@@ -110,18 +110,26 @@ if get_supabase() is None:
 
 expired_mask = classify_expired(documentos_df)
 documentos_vencidos = int(expired_mask.sum()) if not documentos_df.empty else 0
-documentos_pendentes = (
-    int(documentos_df["status"].str.lower().eq("pendente").sum())
+pending_mask = (
+    documentos_df["status"].fillna("").astype(str).str.lower().eq("pendente")
     if not documentos_df.empty and "status" in documentos_df
-    else 0
+    else pd.Series(dtype=bool)
+)
+documentos_pendentes = (
+    int(pending_mask.sum()) if not pending_mask.empty else 0
 )
 riscos_criticos = (
-    int(riscos_df["classificacao"].str.lower().eq("critico").sum())
+    int(riscos_df["classificacao"].fillna("").astype(str).str.lower().eq("critico").sum())
     if not riscos_df.empty and "classificacao" in riscos_df
     else 0
 )
 total_documentos = len(documentos_df)
-documentos_conformes = max(total_documentos - documentos_vencidos - documentos_pendentes, 0)
+documentos_fora_do_fluxo = (
+    int((expired_mask | pending_mask).sum())
+    if not documentos_df.empty and not pending_mask.empty
+    else documentos_vencidos + documentos_pendentes
+)
+documentos_conformes = max(total_documentos - documentos_fora_do_fluxo, 0)
 conformidade = (
     round((documentos_conformes / total_documentos) * 100, 1)
     if total_documentos

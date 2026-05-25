@@ -1,9 +1,12 @@
 import os
+import base64
+import json
 from functools import lru_cache
 from typing import Optional
 
 import streamlit as st
 from dotenv import load_dotenv
+from streamlit.errors import StreamlitSecretNotFoundError
 from supabase import Client, create_client
 
 
@@ -17,8 +20,19 @@ def get_config_value(name: str) -> Optional[str]:
 
     try:
         return st.secrets.get(name)
-    except (AttributeError, FileNotFoundError, KeyError):
+    except (AttributeError, FileNotFoundError, KeyError, StreamlitSecretNotFoundError):
         return None
+
+
+def is_service_role_key(key: str) -> bool:
+    """Return True when the Supabase JWT payload identifies a service_role key."""
+    try:
+        payload = key.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        decoded = base64.urlsafe_b64decode(payload.encode("utf-8"))
+        return json.loads(decoded).get("role") == "service_role"
+    except (IndexError, ValueError, json.JSONDecodeError):
+        return False
 
 
 @lru_cache(maxsize=1)
@@ -29,4 +43,12 @@ def get_supabase() -> Optional[Client]:
     if not url or not key:
         return None
 
-    return create_client(url, key)
+    if is_service_role_key(key):
+        st.error("SUPABASE_KEY nao pode ser service_role. Use a chave anon public.")
+        return None
+
+    try:
+        return create_client(url, key)
+    except Exception as exc:
+        st.error(f"Nao foi possivel conectar ao Supabase: {exc}")
+        return None
