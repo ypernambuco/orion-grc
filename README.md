@@ -50,14 +50,21 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 
 ## Screenshots
 
-Screenshots will be added after the next visual capture cycle.
+### Dashboard
 
-| Screen | Preview |
-| --- | --- |
-| Dashboard | `docs/screenshots/dashboard.png` |
-| Areas | `docs/screenshots/areas.png` |
-| Documents | `docs/screenshots/documentos.png` |
-| Risks | `docs/screenshots/riscos.png` |
+![Dashboard](assets/screenshots/dashboard.png)
+
+### Areas
+
+![Areas](assets/screenshots/areas.png)
+
+### Documentos
+
+![Documentos](assets/screenshots/documentos.png)
+
+### Riscos
+
+![Riscos](assets/screenshots/riscos.png)
 
 ---
 
