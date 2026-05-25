@@ -38,18 +38,18 @@ cp .env.example .env
 4. Preencha as variaveis no arquivo `.env`:
 
 ```env
-SUPABASE_URL=https://cqsodsfdswdwzagfzvue.supabase.co
+SUPABASE_URL=
 SUPABASE_KEY=
 ```
 
-Use a chave `anon public` do Supabase em `SUPABASE_KEY`.
+Use a URL do projeto Supabase e a chave `anon public`.
 
 Nao use `service_role` no app.
 
 No Streamlit Cloud, configure as mesmas variaveis em `st.secrets`:
 
 ```toml
-SUPABASE_URL = "https://cqsodsfdswdwzagfzvue.supabase.co"
+SUPABASE_URL = "seu-projeto-url"
 SUPABASE_KEY = "sua-chave-anon-public"
 ```
 
