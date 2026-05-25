@@ -67,6 +67,25 @@ def normalize_area_name(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def build_area_efficiency(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty or "area" not in df or "status" not in df:
+        return pd.DataFrame()
+
+    df = df.copy()
+    df["vencido"] = classify_expired(df)
+    df["pendente"] = df["status"].fillna("").str.lower().eq("pendente")
+    df["fora_do_fluxo"] = df["vencido"] | df["pendente"]
+
+    grouped = (
+        df.groupby("area", as_index=False)
+        .agg(total=("id", "count"), fora_do_fluxo=("fora_do_fluxo", "sum"))
+    )
+    grouped["eficiencia"] = (
+        ((grouped["total"] - grouped["fora_do_fluxo"]) / grouped["total"]) * 100
+    ).round(1)
+    return grouped.sort_values("eficiencia", ascending=False)
+
+
 apply_theme()
 
 with st.sidebar:
@@ -135,3 +154,20 @@ with chart_cols[1]:
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Nenhum documento cadastrado.")
+
+st.markdown("### Eficiencia por area")
+efficiency_df = build_area_efficiency(documentos_df)
+if not efficiency_df.empty:
+    fig = px.bar(
+        efficiency_df,
+        x="area",
+        y="eficiencia",
+        text="eficiencia",
+        labels={"area": "Area", "eficiencia": "Eficiencia (%)"},
+        range_y=[0, 100],
+    )
+    fig.update_traces(texttemplate="%{text}%", textposition="outside")
+    fig.update_layout(template="plotly_dark", paper_bgcolor="#0f172a", plot_bgcolor="#111827")
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.info("Cadastre documentos por area para calcular eficiencia operacional.")
