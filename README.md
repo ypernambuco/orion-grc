@@ -53,6 +53,14 @@ SUPABASE_URL = "seu-projeto-url"
 SUPABASE_KEY = "sua-chave-anon-public"
 ```
 
+Para deploy no Streamlit Community Cloud, use:
+
+- Repository: `ypernambuco/orion-grc`
+- Branch: `main`
+- Main file path: `app.py`
+
+Nao envie `.env` para o repositorio. O app le variaveis locais via `.env` e, no Streamlit Cloud, usa `st.secrets`.
+
 5. Execute o SQL em `database/schema.sql` no SQL Editor do Supabase.
 
 6. Rode o projeto:

@@ -110,7 +110,7 @@ documentos_df = normalize_area_name(documentos_df)
 riscos_df = normalize_area_name(riscos_df)
 
 if get_supabase() is None:
-    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env para carregar dados.")
+    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets para carregar dados.")
 
 expired_mask = classify_expired(documentos_df)
 documentos_vencidos = int(expired_mask.sum()) if not documentos_df.empty else 0

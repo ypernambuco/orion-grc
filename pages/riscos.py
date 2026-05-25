@@ -84,7 +84,7 @@ areas = load_areas()
 area_options = {area["nome"]: area["id"] for area in areas}
 
 if supabase is None:
-    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env.")
+    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets.")
 
 with st.form("form_risco", clear_on_submit=True):
     area_nome = st.selectbox("Area", list(area_options.keys()) or ["Cadastre uma area primeiro"])

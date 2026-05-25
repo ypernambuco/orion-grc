@@ -49,7 +49,7 @@ st.subheader("Areas")
 
 supabase = get_supabase()
 if supabase is None:
-    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env.")
+    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets.")
 
 with st.form("form_area", clear_on_submit=True):
     nome = st.text_input("Nome da area")
