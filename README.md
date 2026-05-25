@@ -6,6 +6,12 @@ Developed by Vaekor Labs.
 
 ---
 
+## Live Demo
+
+https://orion-grc.streamlit.app/
+
+---
+
 ## Stack
 
 - Streamlit
