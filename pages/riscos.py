@@ -34,20 +34,28 @@ def load_areas() -> list[dict]:
     supabase = get_supabase()
     if supabase is None:
         return []
-    return supabase.table("areas").select("id, nome").order("nome").execute().data
+    try:
+        return supabase.table("areas").select("id, nome").order("nome").execute().data
+    except Exception as exc:
+        st.error(f"Nao foi possivel carregar areas: {exc}")
+        return []
 
 
 def load_riscos() -> pd.DataFrame:
     supabase = get_supabase()
     if supabase is None:
         return pd.DataFrame()
-    data = (
-        supabase.table("riscos")
-        .select("id, descricao, probabilidade, impacto, risco, classificacao, areas(nome)")
-        .order("risco", desc=True)
-        .execute()
-        .data
-    )
+    try:
+        data = (
+            supabase.table("riscos")
+            .select("id, descricao, probabilidade, impacto, risco, classificacao, areas(nome)")
+            .order("risco", desc=True)
+            .execute()
+            .data
+        )
+    except Exception as exc:
+        st.error(f"Nao foi possivel carregar riscos: {exc}")
+        return pd.DataFrame()
     df = pd.DataFrame(data)
     if not df.empty and "areas" in df:
         df["area"] = df["areas"].apply(
@@ -97,18 +105,21 @@ with st.form("form_risco", clear_on_submit=True):
         elif not descricao.strip():
             st.error("Informe a descricao do risco.")
         else:
-            supabase.table("riscos").insert(
-                {
-                    "area_id": area_options[area_nome],
-                    "descricao": descricao.strip(),
-                    "probabilidade": probabilidade,
-                    "impacto": impacto,
-                    "risco": risco,
-                    "classificacao": classificacao,
-                }
-            ).execute()
-            st.success("Risco cadastrado com sucesso.")
-            st.rerun()
+            try:
+                supabase.table("riscos").insert(
+                    {
+                        "area_id": area_options[area_nome],
+                        "descricao": descricao.strip(),
+                        "probabilidade": probabilidade,
+                        "impacto": impacto,
+                        "risco": risco,
+                        "classificacao": classificacao,
+                    }
+                ).execute()
+                st.success("Risco cadastrado com sucesso.")
+                st.rerun()
+            except Exception as exc:
+                st.error(f"Nao foi possivel cadastrar o risco: {exc}")
 
 st.markdown("### Riscos cadastrados")
 riscos_df = load_riscos()

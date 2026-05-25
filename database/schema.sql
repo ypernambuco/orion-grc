@@ -113,6 +113,24 @@ create index if not exists idx_evidencias_documento_id on evidencias(documento_i
 create index if not exists idx_evidencias_risco_id on evidencias(risco_id);
 create index if not exists idx_historico_eventos_entidade on historico_eventos(entidade, entidade_id);
 
+grant usage on schema public to anon;
+
+grant select on
+    public.areas,
+    public.documentos,
+    public.riscos,
+    public.perfis,
+    public.usuarios,
+    public.evidencias,
+    public.historico_eventos
+to anon;
+
+grant insert on
+    public.areas,
+    public.documentos,
+    public.riscos
+to anon;
+
 comment on table perfis is
     'Perfis preparados para controle de acesso futuro: admin, governanca, juridico, gestor_area, diretoria e auditoria.';
 comment on table usuarios is

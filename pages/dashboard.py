@@ -39,21 +39,25 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     if supabase is None:
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
-    areas = supabase.table("areas").select("*").order("nome").execute().data
-    documentos = (
-        supabase.table("documentos")
-        .select("*, areas(nome)")
-        .order("vencimento")
-        .execute()
-        .data
-    )
-    riscos = (
-        supabase.table("riscos")
-        .select("*, areas(nome)")
-        .order("risco", desc=True)
-        .execute()
-        .data
-    )
+    try:
+        areas = supabase.table("areas").select("*").order("nome").execute().data
+        documentos = (
+            supabase.table("documentos")
+            .select("*, areas(nome)")
+            .order("vencimento")
+            .execute()
+            .data
+        )
+        riscos = (
+            supabase.table("riscos")
+            .select("*, areas(nome)")
+            .order("risco", desc=True)
+            .execute()
+            .data
+        )
+    except Exception as exc:
+        st.error(f"Nao foi possivel carregar dados do Supabase: {exc}")
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     return pd.DataFrame(areas), pd.DataFrame(documentos), pd.DataFrame(riscos)
 
 

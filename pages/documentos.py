@@ -27,20 +27,28 @@ def load_areas() -> list[dict]:
     supabase = get_supabase()
     if supabase is None:
         return []
-    return supabase.table("areas").select("id, nome").order("nome").execute().data
+    try:
+        return supabase.table("areas").select("id, nome").order("nome").execute().data
+    except Exception as exc:
+        st.error(f"Nao foi possivel carregar areas: {exc}")
+        return []
 
 
 def load_documentos() -> pd.DataFrame:
     supabase = get_supabase()
     if supabase is None:
         return pd.DataFrame()
-    data = (
-        supabase.table("documentos")
-        .select("id, nome, categoria, responsavel, vencimento, status, areas(nome)")
-        .order("vencimento")
-        .execute()
-        .data
-    )
+    try:
+        data = (
+            supabase.table("documentos")
+            .select("id, nome, categoria, responsavel, vencimento, status, areas(nome)")
+            .order("vencimento")
+            .execute()
+            .data
+        )
+    except Exception as exc:
+        st.error(f"Nao foi possivel carregar documentos: {exc}")
+        return pd.DataFrame()
     df = pd.DataFrame(data)
     if not df.empty and "areas" in df:
         df["area"] = df["areas"].apply(
@@ -89,18 +97,21 @@ with st.form("form_documento", clear_on_submit=True):
         elif not nome.strip() or not responsavel.strip():
             st.error("Preencha nome e responsavel.")
         else:
-            supabase.table("documentos").insert(
-                {
-                    "nome": nome.strip(),
-                    "categoria": categoria,
-                    "area_id": area_options[area_nome],
-                    "responsavel": responsavel.strip(),
-                    "vencimento": vencimento.isoformat(),
-                    "status": status,
-                }
-            ).execute()
-            st.success("Documento cadastrado com sucesso.")
-            st.rerun()
+            try:
+                supabase.table("documentos").insert(
+                    {
+                        "nome": nome.strip(),
+                        "categoria": categoria,
+                        "area_id": area_options[area_nome],
+                        "responsavel": responsavel.strip(),
+                        "vencimento": vencimento.isoformat(),
+                        "status": status,
+                    }
+                ).execute()
+                st.success("Documento cadastrado com sucesso.")
+                st.rerun()
+            except Exception as exc:
+                st.error(f"Nao foi possivel cadastrar o documento: {exc}")
 
 st.markdown("### Documentos cadastrados")
 documentos_df = load_documentos()

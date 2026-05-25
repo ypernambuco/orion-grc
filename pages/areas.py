@@ -24,7 +24,11 @@ def load_areas() -> pd.DataFrame:
     supabase = get_supabase()
     if supabase is None:
         return pd.DataFrame()
-    data = supabase.table("areas").select("*").order("nome").execute().data
+    try:
+        data = supabase.table("areas").select("*").order("nome").execute().data
+    except Exception as exc:
+        st.error(f"Nao foi possivel carregar areas: {exc}")
+        return pd.DataFrame()
     return pd.DataFrame(data)
 
 
@@ -57,9 +61,12 @@ with st.form("form_area", clear_on_submit=True):
         elif not nome.strip():
             st.error("Informe o nome da area.")
         else:
-            supabase.table("areas").insert({"nome": nome.strip()}).execute()
-            st.success("Area cadastrada com sucesso.")
-            st.rerun()
+            try:
+                supabase.table("areas").insert({"nome": nome.strip()}).execute()
+                st.success("Area cadastrada com sucesso.")
+                st.rerun()
+            except Exception as exc:
+                st.error(f"Nao foi possivel cadastrar a area: {exc}")
 
 st.markdown("### Areas cadastradas")
 areas_df = load_areas()
