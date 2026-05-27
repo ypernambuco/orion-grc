@@ -60,6 +60,6 @@ vision_items = [
 ]
 for column, (label, note) in zip(vision_cols, vision_items):
     with column:
-        render_card(label, label, note)
+        render_card(label, label, note, compact=True)
 
 st.info("Use o menu lateral para acessar Dashboard, Areas, Documentos e Riscos.")

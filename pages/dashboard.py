@@ -3,7 +3,7 @@ import plotly.express as px
 import streamlit as st
 
 from services.supabase_client import get_supabase
-from services.ui import apply_theme, render_hero, render_sidebar
+from services.ui import apply_chart_theme, apply_theme, render_hero, render_sidebar
 
 
 st.set_page_config(page_title="ORION GRC | Dashboard", layout="wide")
@@ -133,9 +133,19 @@ with chart_cols[0]:
     )
     if not riscos_df.empty and "area" in riscos_df:
         riscos_area = riscos_df.groupby("area", as_index=False).size()
-        fig = px.bar(riscos_area, x="area", y="size", labels={"size": "Riscos", "area": "Area"})
-        fig.update_traces(marker_color="#38bdf8")
-        fig.update_layout(template="plotly_dark", paper_bgcolor="#0b1120", plot_bgcolor="#111827")
+        fig = px.bar(
+            riscos_area,
+            x="area",
+            y="size",
+            labels={"size": "Riscos", "area": "Area"},
+        )
+        fig.update_traces(
+            marker_color="#D4A64A",
+            marker_line_color="rgba(245,201,106,0.28)",
+            marker_line_width=1,
+            hovertemplate="<b>%{x}</b><br>Riscos: %{y}<extra></extra>",
+        )
+        apply_chart_theme(fig, height=350)
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Nenhum risco cadastrado.")
@@ -148,8 +158,20 @@ with chart_cols[1]:
     )
     if not documentos_df.empty and "status" in documentos_df:
         status_df = documentos_df.groupby("status", as_index=False).size()
-        fig = px.pie(status_df, names="status", values="size", hole=0.45)
-        fig.update_layout(template="plotly_dark", paper_bgcolor="#0b1120", plot_bgcolor="#111827")
+        fig = px.pie(
+            status_df,
+            names="status",
+            values="size",
+            hole=0.58,
+            color_discrete_sequence=["#D4A64A", "#F5C96A", "#C45F5F", "#D6D9E0"],
+        )
+        fig.update_traces(
+            textposition="inside",
+            textinfo="percent+label",
+            marker=dict(line=dict(color="rgba(5,5,5,0.92)", width=2)),
+            hovertemplate="<b>%{label}</b><br>Documentos: %{value}<extra></extra>",
+        )
+        apply_chart_theme(fig, height=350)
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Nenhum documento cadastrado.")
@@ -169,8 +191,15 @@ if not efficiency_df.empty:
         labels={"area": "Area", "eficiencia": "Eficiencia (%)"},
         range_y=[0, 100],
     )
-    fig.update_traces(texttemplate="%{text}%", textposition="outside", marker_color="#22c55e")
-    fig.update_layout(template="plotly_dark", paper_bgcolor="#0b1120", plot_bgcolor="#111827")
+    fig.update_traces(
+        texttemplate="%{text}%",
+        textposition="outside",
+        marker_color="#D6D9E0",
+        marker_line_color="rgba(245,201,106,0.28)",
+        marker_line_width=1,
+        hovertemplate="<b>%{x}</b><br>Eficiencia: %{y}%<extra></extra>",
+    )
+    apply_chart_theme(fig, height=390)
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("Cadastre documentos por area para calcular eficiencia operacional.")
