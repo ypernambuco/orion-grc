@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from services.supabase_client import get_supabase
-from services.ui import apply_theme, display_dataframe, render_hero, render_sidebar
+from services.ui import apply_theme, render_data_table, render_empty_state, render_hero, render_sidebar
 
 
 st.set_page_config(page_title="ORION GRC | Áreas", layout="wide")
@@ -71,12 +71,13 @@ st.markdown(
     '<p class="orion-table-note">Base de áreas usada nos filtros, formulários e indicadores.</p>',
     unsafe_allow_html=True,
 )
-areas_df = load_areas()
+with st.spinner("Carregando áreas corporativas..."):
+    areas_df = load_areas()
 if areas_df.empty:
-    st.info("Nenhuma área cadastrada.")
-else:
-    st.dataframe(
-        display_dataframe(areas_df, ["id", "nome", "created_at"]),
-        use_container_width=True,
-        hide_index=True,
+    render_empty_state(
+        "Nenhuma área cadastrada",
+        "A base de governança ainda não possui áreas responsáveis. Cadastre as unidades operacionais para estruturar documentos, riscos e indicadores.",
+        "Comece pela área responsável pelo maior volume de controles ou documentos críticos.",
     )
+else:
+    render_data_table(areas_df, ["id", "nome", "created_at"])

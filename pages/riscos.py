@@ -2,7 +2,15 @@ import pandas as pd
 import streamlit as st
 
 from services.supabase_client import get_supabase
-from services.ui import apply_theme, display_dataframe, display_label, render_hero, render_sidebar
+from services.ui import (
+    apply_theme,
+    badge_html,
+    display_label,
+    render_data_table,
+    render_empty_state,
+    render_hero,
+    render_sidebar,
+)
 
 
 st.set_page_config(page_title="ORION GRC | Riscos", layout="wide")
@@ -87,7 +95,9 @@ with st.form("form_risco", clear_on_submit=True):
     impacto = col2.slider("Impacto", min_value=1, max_value=5, value=3)
     risco = probabilidade * impacto
     classificacao = classify_risk(risco)
-    col3.metric("Score de risco", f"{risco} - {display_label(classificacao)}")
+    with col3:
+        st.metric("Score de risco", risco, display_label(classificacao), delta_color="off")
+        st.markdown(badge_html(classificacao), unsafe_allow_html=True)
 
     submitted = st.form_submit_button("Cadastrar risco")
     if submitted:
@@ -119,9 +129,14 @@ st.markdown(
     '<p class="orion-table-note">Priorização operacional calculada automaticamente pelo score.</p>',
     unsafe_allow_html=True,
 )
-riscos_df = load_riscos()
+with st.spinner("Carregando matriz de riscos..."):
+    riscos_df = load_riscos()
 if riscos_df.empty:
-    st.info("Nenhum risco cadastrado.")
+    render_empty_state(
+        "Nenhum risco cadastrado",
+        "A matriz ainda não possui eventos registrados. Cadastre riscos por área para criar uma visão executiva de exposição e priorização.",
+        "Comece pelos eventos com maior impacto operacional, contratual ou regulatório.",
+    )
 else:
     columns = ["id", "area", "descricao", "probabilidade", "impacto", "risco", "classificacao"]
-    st.dataframe(display_dataframe(riscos_df, columns), use_container_width=True, hide_index=True)
+    render_data_table(riscos_df, columns)

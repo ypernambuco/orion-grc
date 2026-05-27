@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from services.supabase_client import get_supabase
-from services.ui import apply_theme, display_dataframe, display_label, render_hero, render_sidebar
+from services.ui import apply_theme, display_label, render_data_table, render_empty_state, render_hero, render_sidebar
 
 
 st.set_page_config(page_title="ORION GRC | Documentos", layout="wide")
@@ -121,9 +121,14 @@ st.markdown(
     '<p class="orion-table-note">Visão operacional por área, responsável, vencimento e status.</p>',
     unsafe_allow_html=True,
 )
-documentos_df = load_documentos()
+with st.spinner("Carregando ciclo documental..."):
+    documentos_df = load_documentos()
 if documentos_df.empty:
-    st.info("Nenhum documento cadastrado.")
+    render_empty_state(
+        "Nenhum documento cadastrado",
+        "O ciclo documental ainda não possui itens monitorados. Registre contratos, políticas, evidências ou relatórios para acompanhar vencimentos e responsabilidades.",
+        "Priorize documentos com vencimento recorrente ou impacto direto em auditoria e conformidade.",
+    )
 else:
     columns = ["id", "nome", "categoria", "area", "responsavel", "vencimento", "status"]
-    st.dataframe(display_dataframe(documentos_df, columns), use_container_width=True, hide_index=True)
+    render_data_table(documentos_df, columns)

@@ -3,7 +3,14 @@ import plotly.express as px
 import streamlit as st
 
 from services.supabase_client import get_supabase
-from services.ui import apply_chart_theme, apply_theme, display_label, render_hero, render_sidebar
+from services.ui import (
+    apply_chart_theme,
+    apply_theme,
+    display_label,
+    render_empty_state,
+    render_hero,
+    render_sidebar,
+)
 
 
 st.set_page_config(page_title="ORION GRC | Dashboard", layout="wide")
@@ -83,7 +90,8 @@ render_hero(
     ),
 )
 
-areas_df, documentos_df, riscos_df = load_data()
+with st.spinner("Carregando visão executiva..."):
+    areas_df, documentos_df, riscos_df = load_data()
 documentos_df = normalize_area_name(documentos_df)
 riscos_df = normalize_area_name(riscos_df)
 
@@ -119,10 +127,30 @@ conformidade = (
 )
 
 metric_cols = st.columns(4)
-metric_cols[0].metric("Conformidade geral", f"{conformidade}%")
-metric_cols[1].metric("Documentos vencidos", documentos_vencidos)
-metric_cols[2].metric("Documentos pendentes", documentos_pendentes)
-metric_cols[3].metric("Riscos críticos", riscos_criticos)
+metric_cols[0].metric(
+    "Conformidade geral",
+    f"{conformidade}%",
+    "Base consolidada" if total_documentos else "Aguardando dados",
+    delta_color="off",
+)
+metric_cols[1].metric(
+    "Documentos vencidos",
+    documentos_vencidos,
+    "Sem alertas" if documentos_vencidos == 0 else "Requer atenção",
+    delta_color="off",
+)
+metric_cols[2].metric(
+    "Documentos pendentes",
+    documentos_pendentes,
+    "Fluxo controlado" if documentos_pendentes == 0 else "Acompanhar resolução",
+    delta_color="off",
+)
+metric_cols[3].metric(
+    "Riscos críticos",
+    riscos_criticos,
+    "Sem exposição crítica" if riscos_criticos == 0 else "Prioridade executiva",
+    delta_color="off",
+)
 
 chart_cols = st.columns(2)
 with chart_cols[0]:
@@ -149,7 +177,11 @@ with chart_cols[0]:
         apply_chart_theme(fig, height=350)
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("Nenhum risco cadastrado.")
+        render_empty_state(
+            "Sem riscos para consolidar",
+            "A visão por área será exibida assim que a matriz de riscos receber eventos classificados.",
+            "Registre riscos na página Riscos para ativar a análise executiva por área.",
+        )
 
 with chart_cols[1]:
     st.markdown("### Documentos por status")
@@ -176,7 +208,11 @@ with chart_cols[1]:
         apply_chart_theme(fig, height=350)
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("Nenhum documento cadastrado.")
+        render_empty_state(
+            "Sem documentos para analisar",
+            "A distribuição por status aparecerá quando houver documentos cadastrados no ciclo documental.",
+            "Cadastre documentos com responsável, vencimento e status para liberar esta visão.",
+        )
 
 st.markdown("### Eficiência por área")
 st.markdown(
@@ -206,4 +242,8 @@ if not efficiency_df.empty:
     apply_chart_theme(fig, height=390)
     st.plotly_chart(fig, use_container_width=True)
 else:
-    st.info("Cadastre documentos por área para calcular a eficiência operacional.")
+    render_empty_state(
+        "Eficiência ainda indisponível",
+        "O indicador depende de documentos vinculados às áreas corporativas e seus respectivos status.",
+        "Cadastre documentos por área para calcular a eficiência operacional estimada.",
+    )
