@@ -1,7 +1,22 @@
 import re
 from html import escape
+from typing import Optional
 
 import streamlit as st
+
+
+__all__ = [
+    "apply_chart_theme",
+    "apply_theme",
+    "badge_html",
+    "display_dataframe",
+    "display_label",
+    "render_card",
+    "render_data_table",
+    "render_empty_state",
+    "render_hero",
+    "render_sidebar",
+]
 
 
 NAV_ITEMS = [
@@ -101,7 +116,7 @@ def badge_html(value: str) -> str:
     return f'<span class="orion-badge {badge_class(label)}">{escape(label)}</span>'
 
 
-def render_data_table(df, columns, height: int | None = None) -> None:
+def render_data_table(df, columns, height: Optional[int] = None) -> None:
     display_df = display_dataframe(df, columns)
     max_height = f' style="max-height: {height}px;"' if height else ""
     header_html = "".join(
@@ -131,7 +146,7 @@ def render_data_table(df, columns, height: int | None = None) -> None:
     )
 
 
-def render_empty_state(title: str, message: str, action: str | None = None) -> None:
+def render_empty_state(title: str, message: str, action: Optional[str] = None) -> None:
     action_html = (
         f'<div class="orion-empty-action">{escape(action)}</div>'
         if action
