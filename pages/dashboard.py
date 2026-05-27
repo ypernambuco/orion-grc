@@ -3,7 +3,7 @@ import plotly.express as px
 import streamlit as st
 
 from services.supabase_client import get_supabase
-from services.ui import apply_chart_theme, apply_theme, render_hero, render_sidebar
+from services.ui import apply_chart_theme, apply_theme, display_label, render_hero, render_sidebar
 
 
 st.set_page_config(page_title="ORION GRC | Dashboard", layout="wide")
@@ -38,7 +38,7 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
             .data
         )
     except Exception as exc:
-        st.error(f"Nao foi possivel carregar dados do Supabase: {exc}")
+        st.error(f"Não foi possível carregar os dados do Supabase: {exc}")
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     return pd.DataFrame(areas), pd.DataFrame(documentos), pd.DataFrame(riscos)
 
@@ -48,7 +48,7 @@ def normalize_area_name(df: pd.DataFrame) -> pd.DataFrame:
         return df
     df = df.copy()
     df["area"] = df["areas"].apply(
-        lambda item: item.get("nome") if isinstance(item, dict) else "Sem area"
+        lambda item: item.get("nome") if isinstance(item, dict) else "Sem área"
     )
     return df
 
@@ -75,11 +75,11 @@ def build_area_efficiency(df: pd.DataFrame) -> pd.DataFrame:
 apply_theme()
 render_sidebar("Dashboard")
 render_hero(
-    "Executive Overview",
+    "Visão executiva",
     "Dashboard executivo",
     (
         "Indicadores consolidados para entender conformidade documental, "
-        "riscos criticos e eficiencia operacional por area."
+        "riscos críticos e eficiência operacional por área."
     ),
 )
 
@@ -88,7 +88,7 @@ documentos_df = normalize_area_name(documentos_df)
 riscos_df = normalize_area_name(riscos_df)
 
 if get_supabase() is None:
-    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets para carregar dados.")
+    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets para carregar os dados.")
 
 expired_mask = classify_expired(documentos_df)
 documentos_vencidos = int(expired_mask.sum()) if not documentos_df.empty else 0
@@ -122,22 +122,23 @@ metric_cols = st.columns(4)
 metric_cols[0].metric("Conformidade geral", f"{conformidade}%")
 metric_cols[1].metric("Documentos vencidos", documentos_vencidos)
 metric_cols[2].metric("Documentos pendentes", documentos_pendentes)
-metric_cols[3].metric("Riscos criticos", riscos_criticos)
+metric_cols[3].metric("Riscos críticos", riscos_criticos)
 
 chart_cols = st.columns(2)
 with chart_cols[0]:
-    st.markdown("### Riscos por area")
+    st.markdown("### Riscos por área")
     st.markdown(
-        '<p class="orion-section">Mapa de concentracao para priorizacao gerencial.</p>',
+        '<p class="orion-section">Mapa de concentração para priorização gerencial.</p>',
         unsafe_allow_html=True,
     )
     if not riscos_df.empty and "area" in riscos_df:
         riscos_area = riscos_df.groupby("area", as_index=False).size()
+        riscos_area["area"] = riscos_area["area"].apply(display_label)
         fig = px.bar(
             riscos_area,
             x="area",
             y="size",
-            labels={"size": "Riscos", "area": "Area"},
+            labels={"size": "Riscos", "area": "Área"},
         )
         fig.update_traces(
             marker_color="#D4A64A",
@@ -153,11 +154,12 @@ with chart_cols[0]:
 with chart_cols[1]:
     st.markdown("### Documentos por status")
     st.markdown(
-        '<p class="orion-section">Distribuicao do ciclo documental por situacao atual.</p>',
+        '<p class="orion-section">Distribuição do ciclo documental por situação atual.</p>',
         unsafe_allow_html=True,
     )
     if not documentos_df.empty and "status" in documentos_df:
         status_df = documentos_df.groupby("status", as_index=False).size()
+        status_df["status"] = status_df["status"].apply(display_label)
         fig = px.pie(
             status_df,
             names="status",
@@ -176,19 +178,21 @@ with chart_cols[1]:
     else:
         st.info("Nenhum documento cadastrado.")
 
-st.markdown("### Eficiencia por area")
+st.markdown("### Eficiência por área")
 st.markdown(
-    '<p class="orion-section">Percentual estimado de documentos vigentes e fora de pendencia por area.</p>',
+    '<p class="orion-section">Percentual estimado de documentos vigentes e sem pendências por área.</p>',
     unsafe_allow_html=True,
 )
 efficiency_df = build_area_efficiency(documentos_df)
 if not efficiency_df.empty:
+    efficiency_df = efficiency_df.copy()
+    efficiency_df["area"] = efficiency_df["area"].apply(display_label)
     fig = px.bar(
         efficiency_df,
         x="area",
         y="eficiencia",
         text="eficiencia",
-        labels={"area": "Area", "eficiencia": "Eficiencia (%)"},
+        labels={"area": "Área", "eficiencia": "Eficiência (%)"},
         range_y=[0, 100],
     )
     fig.update_traces(
@@ -197,9 +201,9 @@ if not efficiency_df.empty:
         marker_color="#D6D9E0",
         marker_line_color="rgba(245,201,106,0.28)",
         marker_line_width=1,
-        hovertemplate="<b>%{x}</b><br>Eficiencia: %{y}%<extra></extra>",
+        hovertemplate="<b>%{x}</b><br>Eficiência: %{y}%<extra></extra>",
     )
     apply_chart_theme(fig, height=390)
     st.plotly_chart(fig, use_container_width=True)
 else:
-    st.info("Cadastre documentos por area para calcular eficiencia operacional.")
+    st.info("Cadastre documentos por área para calcular a eficiência operacional.")

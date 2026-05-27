@@ -44,11 +44,11 @@ def get_supabase() -> Optional[Client]:
         return None
 
     if is_service_role_key(key):
-        st.error("SUPABASE_KEY nao pode ser service_role. Use a chave anon public.")
+        st.error("SUPABASE_KEY não pode ser service_role. Use a chave pública anon.")
         return None
 
     try:
         return create_client(url, key)
     except Exception as exc:
-        st.error(f"Nao foi possivel conectar ao Supabase: {exc}")
+        st.error(f"Não foi possível conectar ao Supabase: {exc}")
         return None

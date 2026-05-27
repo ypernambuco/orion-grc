@@ -1,13 +1,82 @@
+import re
+
 import streamlit as st
 
 
 NAV_ITEMS = [
-    ("app.py", "Inicio", "Visao geral do produto"),
+    ("app.py", "Início", "Visão geral do produto"),
     ("pages/dashboard.py", "Dashboard", "Indicadores executivos"),
-    ("pages/areas.py", "Areas", "Unidades de governanca"),
+    ("pages/areas.py", "Áreas", "Unidades de governança"),
     ("pages/documentos.py", "Documentos", "Ciclo documental"),
     ("pages/riscos.py", "Riscos", "Matriz operacional"),
 ]
+
+
+DISPLAY_LABELS = {
+    "Area": "Área",
+    "Areas": "Áreas",
+    "Sem area": "Sem área",
+    "Medio": "Médio",
+    "Critico": "Crítico",
+    "Em revisao": "Em revisão",
+    "Politica": "Política",
+    "Relatorio": "Relatório",
+    "Juridico": "Jurídico",
+    "Operacoes": "Operações",
+}
+
+
+DISPLAY_REPLACEMENTS = (
+    ("Areas", "Áreas"),
+    ("Area", "Área"),
+    ("areas", "áreas"),
+    ("area", "área"),
+    ("Persistencia", "Persistência"),
+    ("persistencia", "persistência"),
+    ("Juridico", "Jurídico"),
+    ("juridico", "jurídico"),
+    ("Operacoes", "Operações"),
+    ("operacoes", "operações"),
+    ("Medio", "Médio"),
+    ("medio", "médio"),
+    ("Critico", "Crítico"),
+    ("critico", "crítico"),
+)
+
+
+COLUMN_LABELS = {
+    "id": "ID",
+    "nome": "Nome",
+    "created_at": "Criado em",
+    "categoria": "Categoria",
+    "area": "Área",
+    "responsavel": "Responsável",
+    "vencimento": "Vencimento",
+    "status": "Status",
+    "descricao": "Descrição",
+    "probabilidade": "Probabilidade",
+    "impacto": "Impacto",
+    "risco": "Score",
+    "classificacao": "Classificação",
+}
+
+
+def display_label(value):
+    if not isinstance(value, str):
+        return value
+    if value in DISPLAY_LABELS:
+        return DISPLAY_LABELS[value]
+    label = value
+    for source, target in DISPLAY_REPLACEMENTS:
+        label = re.sub(rf"\b{source}\b", target, label)
+    return label
+
+
+def display_dataframe(df, columns):
+    display_df = df[columns].copy()
+    for column in display_df.columns:
+        display_df[column] = display_df[column].apply(display_label)
+    return display_df.rename(columns=COLUMN_LABELS)
 
 
 def apply_theme() -> None:
@@ -410,13 +479,13 @@ def render_sidebar(active: str) -> None:
             <div class="orion-brand">
                 <div class="orion-brand-kicker">Vaekor Labs</div>
                 <div class="orion-brand-title">ORION GRC</div>
-                <div class="orion-brand-subtitle">Governance command center</div>
-                <div class="orion-status">Online em producao</div>
+                <div class="orion-brand-subtitle">Centro de governança</div>
+                <div class="orion-status">Online em produção</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.caption("Governanca, riscos e eficiencia operacional para pequenas empresas.")
+        st.caption("Governança, riscos e eficiência operacional para pequenas empresas.")
         st.markdown('<div class="orion-divider"></div>', unsafe_allow_html=True)
 
         for path, label, caption in NAV_ITEMS:
@@ -428,7 +497,7 @@ def render_sidebar(active: str) -> None:
             )
 
         st.markdown('<div class="orion-divider"></div>', unsafe_allow_html=True)
-        st.caption("Demo SaaS sem autenticacao nesta versao.")
+        st.caption("Demonstração SaaS sem autenticação nesta versão.")
 
 
 def render_hero(eyebrow: str, title: str, subtitle: str) -> None:

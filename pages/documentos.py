@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from services.supabase_client import get_supabase
-from services.ui import apply_theme, render_hero, render_sidebar
+from services.ui import apply_theme, display_dataframe, display_label, render_hero, render_sidebar
 
 
 st.set_page_config(page_title="ORION GRC | Documentos", layout="wide")
@@ -28,7 +28,7 @@ def load_areas() -> list[dict]:
     try:
         return supabase.table("areas").select("id, nome").order("nome").execute().data
     except Exception as exc:
-        st.error(f"Nao foi possivel carregar areas: {exc}")
+        st.error(f"Não foi possível carregar as áreas: {exc}")
         return []
 
 
@@ -45,12 +45,12 @@ def load_documentos() -> pd.DataFrame:
             .data
         )
     except Exception as exc:
-        st.error(f"Nao foi possivel carregar documentos: {exc}")
+        st.error(f"Não foi possível carregar os documentos: {exc}")
         return pd.DataFrame()
     df = pd.DataFrame(data)
     if not df.empty and "areas" in df:
         df["area"] = df["areas"].apply(
-            lambda item: item.get("nome") if isinstance(item, dict) else "Sem area"
+            lambda item: item.get("nome") if isinstance(item, dict) else "Sem área"
         )
     return df
 
@@ -58,10 +58,10 @@ def load_documentos() -> pd.DataFrame:
 apply_theme()
 render_sidebar("Documentos")
 render_hero(
-    "Document Lifecycle",
-    "Gestao documental",
+    "Ciclo documental",
+    "Gestão documental",
     (
-        "Controle contratos, politicas, relatorios, evidencias e documentos "
+        "Controle contratos, políticas, relatórios, evidências e documentos "
         "de auditoria com dono, vencimento e status operacional."
     ),
 )
@@ -75,26 +75,30 @@ if supabase is None:
 
 st.markdown("### Novo documento")
 st.markdown(
-    '<p class="orion-section">Registre itens que precisam de monitoramento, revisao ou evidencia.</p>',
+    '<p class="orion-section">Registre itens que precisam de monitoramento, revisão ou evidência.</p>',
     unsafe_allow_html=True,
 )
 with st.form("form_documento", clear_on_submit=True):
     col1, col2, col3 = st.columns(3)
     nome = col1.text_input("Nome")
-    categoria = col2.selectbox("Categoria", CATEGORY_OPTIONS)
-    area_nome = col3.selectbox("Area", list(area_options.keys()) or ["Cadastre uma area primeiro"])
-    responsavel = col1.text_input("Responsavel")
+    categoria = col2.selectbox("Categoria", CATEGORY_OPTIONS, format_func=display_label)
+    area_nome = col3.selectbox(
+        "Área",
+        list(area_options.keys()) or ["Cadastre uma área primeiro"],
+        format_func=display_label,
+    )
+    responsavel = col1.text_input("Responsável")
     vencimento = col2.date_input("Vencimento")
-    status = col3.selectbox("Status", STATUS_OPTIONS)
+    status = col3.selectbox("Status", STATUS_OPTIONS, format_func=display_label)
 
     submitted = st.form_submit_button("Cadastrar documento")
     if submitted:
         if supabase is None:
-            st.error("Supabase nao configurado.")
+            st.error("Supabase não configurado.")
         elif not area_options:
-            st.error("Cadastre uma area antes de registrar documentos.")
+            st.error("Cadastre uma área antes de registrar documentos.")
         elif not nome.strip() or not responsavel.strip():
-            st.error("Preencha nome e responsavel.")
+            st.error("Preencha nome e responsável.")
         else:
             try:
                 supabase.table("documentos").insert(
@@ -110,11 +114,11 @@ with st.form("form_documento", clear_on_submit=True):
                 st.success("Documento cadastrado com sucesso.")
                 st.rerun()
             except Exception as exc:
-                st.error(f"Nao foi possivel cadastrar o documento: {exc}")
+                st.error(f"Não foi possível cadastrar o documento: {exc}")
 
 st.markdown("### Documentos cadastrados")
 st.markdown(
-    '<p class="orion-table-note">Visao operacional por area, responsavel, vencimento e status.</p>',
+    '<p class="orion-table-note">Visão operacional por área, responsável, vencimento e status.</p>',
     unsafe_allow_html=True,
 )
 documentos_df = load_documentos()
@@ -122,4 +126,4 @@ if documentos_df.empty:
     st.info("Nenhum documento cadastrado.")
 else:
     columns = ["id", "nome", "categoria", "area", "responsavel", "vencimento", "status"]
-    st.dataframe(documentos_df[columns], use_container_width=True, hide_index=True)
+    st.dataframe(display_dataframe(documentos_df, columns), use_container_width=True, hide_index=True)

@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from services.supabase_client import get_supabase
-from services.ui import apply_theme, render_hero, render_sidebar
+from services.ui import apply_theme, display_dataframe, display_label, render_hero, render_sidebar
 
 
 st.set_page_config(page_title="ORION GRC | Riscos", layout="wide")
@@ -25,7 +25,7 @@ def load_areas() -> list[dict]:
     try:
         return supabase.table("areas").select("id, nome").order("nome").execute().data
     except Exception as exc:
-        st.error(f"Nao foi possivel carregar areas: {exc}")
+        st.error(f"Não foi possível carregar as áreas: {exc}")
         return []
 
 
@@ -42,12 +42,12 @@ def load_riscos() -> pd.DataFrame:
             .data
         )
     except Exception as exc:
-        st.error(f"Nao foi possivel carregar riscos: {exc}")
+        st.error(f"Não foi possível carregar os riscos: {exc}")
         return pd.DataFrame()
     df = pd.DataFrame(data)
     if not df.empty and "areas" in df:
         df["area"] = df["areas"].apply(
-            lambda item: item.get("nome") if isinstance(item, dict) else "Sem area"
+            lambda item: item.get("nome") if isinstance(item, dict) else "Sem área"
         )
     return df
 
@@ -55,11 +55,11 @@ def load_riscos() -> pd.DataFrame:
 apply_theme()
 render_sidebar("Riscos")
 render_hero(
-    "Risk Register",
+    "Registro de riscos",
     "Matriz de riscos",
     (
         "Classifique riscos por probabilidade e impacto para priorizar "
-        "controles internos, evidencias e plano de resposta."
+        "controles internos, evidências e planos de resposta."
     ),
 )
 
@@ -72,27 +72,31 @@ if supabase is None:
 
 st.markdown("### Novo risco")
 st.markdown(
-    '<p class="orion-section">Registre eventos que podem afetar continuidade, conformidade ou eficiencia.</p>',
+    '<p class="orion-section">Registre eventos que podem afetar continuidade, conformidade ou eficiência.</p>',
     unsafe_allow_html=True,
 )
 with st.form("form_risco", clear_on_submit=True):
-    area_nome = st.selectbox("Area", list(area_options.keys()) or ["Cadastre uma area primeiro"])
-    descricao = st.text_area("Descricao")
+    area_nome = st.selectbox(
+        "Área",
+        list(area_options.keys()) or ["Cadastre uma área primeiro"],
+        format_func=display_label,
+    )
+    descricao = st.text_area("Descrição")
     col1, col2, col3 = st.columns(3)
     probabilidade = col1.slider("Probabilidade", min_value=1, max_value=5, value=3)
     impacto = col2.slider("Impacto", min_value=1, max_value=5, value=3)
     risco = probabilidade * impacto
     classificacao = classify_risk(risco)
-    col3.metric("Score de risco", f"{risco} - {classificacao}")
+    col3.metric("Score de risco", f"{risco} - {display_label(classificacao)}")
 
     submitted = st.form_submit_button("Cadastrar risco")
     if submitted:
         if supabase is None:
-            st.error("Supabase nao configurado.")
+            st.error("Supabase não configurado.")
         elif not area_options:
-            st.error("Cadastre uma area antes de registrar riscos.")
+            st.error("Cadastre uma área antes de registrar riscos.")
         elif not descricao.strip():
-            st.error("Informe a descricao do risco.")
+            st.error("Informe a descrição do risco.")
         else:
             try:
                 supabase.table("riscos").insert(
@@ -108,11 +112,11 @@ with st.form("form_risco", clear_on_submit=True):
                 st.success("Risco cadastrado com sucesso.")
                 st.rerun()
             except Exception as exc:
-                st.error(f"Nao foi possivel cadastrar o risco: {exc}")
+                st.error(f"Não foi possível cadastrar o risco: {exc}")
 
 st.markdown("### Riscos cadastrados")
 st.markdown(
-    '<p class="orion-table-note">Priorizacao operacional calculada automaticamente pelo score.</p>',
+    '<p class="orion-table-note">Priorização operacional calculada automaticamente pelo score.</p>',
     unsafe_allow_html=True,
 )
 riscos_df = load_riscos()
@@ -120,4 +124,4 @@ if riscos_df.empty:
     st.info("Nenhum risco cadastrado.")
 else:
     columns = ["id", "area", "descricao", "probabilidade", "impacto", "risco", "classificacao"]
-    st.dataframe(riscos_df[columns], use_container_width=True, hide_index=True)
+    st.dataframe(display_dataframe(riscos_df, columns), use_container_width=True, hide_index=True)
