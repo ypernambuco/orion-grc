@@ -275,7 +275,7 @@ def generate_strategic_alerts(
     if int(metrics["documentos_pendentes"]):
         alerts.append(
             {
-                "label": "Compliance",
+                "label": "Conformidade",
                 "title": "Pendências documentais",
                 "message": f"{metrics['documentos_pendentes']} documento(s) seguem pendentes no ciclo de controle.",
             }
@@ -317,7 +317,7 @@ apply_theme()
 render_sidebar("Dashboard")
 render_hero(
     "Vaekor Labs | ORION GRC",
-    "Executive Cockpit",
+    "Cockpit Executivo",
     (
         "Visão consolidada de governança, riscos e conformidade para apoiar "
         "decisões executivas, priorização de controles e acompanhamento operacional."
@@ -340,26 +340,23 @@ metrics = calculate_cockpit_metrics(areas_df, documentos_df, riscos_df)
 executive_summary = generate_executive_summary(metrics)
 strategic_alerts = generate_strategic_alerts(areas_df, documentos_df, riscos_df, metrics)
 
-summary_col, score_col, posture_col = st.columns([1.5, 0.85, 0.85])
-with summary_col:
-    render_executive_summary(executive_summary)
-with score_col:
+render_executive_summary(executive_summary)
+
+decision_cols = st.columns(3)
+with decision_cols[0]:
     render_compliance_score(metrics)
-with posture_col:
+with decision_cols[1]:
     render_risk_posture(metrics)
+with decision_cols[2]:
+    render_strategic_alerts(strategic_alerts)
 
-st.markdown("### Alertas estratégicos")
-st.markdown(
-    '<p class="orion-section">Prioridades gerenciais derivadas dos dados atuais de governança, documentos e riscos.</p>',
-    unsafe_allow_html=True,
-)
-render_strategic_alerts(strategic_alerts)
-
-st.markdown("### Indicadores executivos principais")
+st.markdown('<div class="orion-section-break"></div>', unsafe_allow_html=True)
+st.markdown("### Indicadores Executivos")
 st.markdown(
     '<p class="orion-section">Sinais consolidados para acompanhamento rápido da saúde operacional do GRC.</p>',
     unsafe_allow_html=True,
 )
+
 metric_cols = st.columns(3)
 with metric_cols[0]:
     render_kpi_card(

@@ -128,6 +128,10 @@ def badge_html(value: str) -> str:
     return f'<span class="orion-badge {badge_class(label)}">{escape(label)}</span>'
 
 
+def _render_html(html: str) -> None:
+    st.html(html)
+
+
 def render_data_table(df, columns, height: Optional[int] = None) -> None:
     display_df = display_dataframe(df, columns)
     max_height = f' style="max-height: {height}px;"' if height else ""
@@ -247,59 +251,66 @@ def render_alert_card(label: str, value: str, note: str) -> None:
 
 
 def render_compliance_score(metrics: dict[str, object]) -> None:
-    st.markdown(
+    _render_html(
         f"""
-        <div class="orion-cockpit-panel">
-            <div class="orion-cockpit-kicker">Compliance Score</div>
+        <div class="orion-cockpit-panel orion-compliance-panel">
+            <div class="orion-cockpit-kicker">Score de Conformidade</div>
             <div class="orion-score-value">{escape(str(metrics['conformidade']))}%</div>
             <div class="orion-score-row">
                 {badge_html(str(metrics["compliance_badge"]))}
-                <span class="orion-cockpit-title">{escape(str(metrics["compliance_status"]))}</span>
+                <span class="orion-score-status">{escape(str(metrics["compliance_status"]))}</span>
             </div>
             <p class="orion-cockpit-text">{escape(str(metrics["compliance_description"]))}</p>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
 def render_risk_posture(metrics: dict[str, object]) -> None:
     posture = metrics["risk_posture"]
-    st.markdown(
+    severity_class = {
+        "Baixa": "orion-risk-posture-low",
+        "Moderada": "orion-risk-posture-moderate",
+        "Elevada": "orion-risk-posture-elevated",
+        "Crítica": "orion-risk-posture-critical",
+    }.get(str(posture["status"]), "orion-risk-posture-moderate")
+    _render_html(
         f"""
-        <div class="orion-cockpit-panel">
-            <div class="orion-cockpit-kicker">Risk Posture</div>
-            <div class="orion-cockpit-title">Postura {escape(str(posture["status"]))}</div>
-            <div class="orion-score-row">
-                {badge_html(str(posture["badge"]))}
-                <span class="orion-cockpit-text">{escape(str(metrics['riscos_criticos']))} risco(s) crítico(s)</span>
-            </div>
+        <div class="orion-cockpit-panel orion-risk-posture {severity_class}">
+            <div class="orion-cockpit-kicker">Postura de Risco</div>
+            <div class="orion-posture-status">{escape(str(posture["status"]))}</div>
+            <div class="orion-posture-count">{escape(str(metrics['riscos_criticos']))} risco(s) crítico(s)</div>
             <p class="orion-cockpit-text">{escape(str(posture["description"]))}</p>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
 def render_executive_summary(summary: str) -> None:
-    st.markdown(
+    _render_html(
         f"""
-        <div class="orion-cockpit-panel">
-            <div class="orion-cockpit-kicker">Executive Summary</div>
-            <div class="orion-cockpit-title">Leitura estratégica do momento</div>
+        <div class="orion-cockpit-panel orion-cockpit-panel-primary">
+            <div class="orion-cockpit-kicker">Resumo Executivo</div>
+            <div class="orion-cockpit-title">Leitura estratégica da organização</div>
             <p class="orion-cockpit-text">{escape(summary)}</p>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
 def render_strategic_alerts(alerts: list[dict[str, str]]) -> None:
     if not alerts:
-        render_empty_state(
-            "Sem alertas estratégicos",
-            "A visão atual não aponta documentos vencidos, pendências relevantes, riscos críticos ou áreas sem cobertura.",
-            "Mantenha a rotina de revisão para preservar a estabilidade operacional.",
+        _render_html(
+            """
+            <div class="orion-cockpit-panel orion-alert-panel">
+                <div class="orion-cockpit-kicker">Alertas Estratégicos</div>
+                <div class="orion-cockpit-title">Sem alertas estratégicos</div>
+                <p class="orion-cockpit-text">
+                    A visão atual não aponta documentos vencidos, pendências relevantes,
+                    riscos críticos ou áreas sem cobertura.
+                </p>
+            </div>
+            """
         )
         return
 
@@ -308,20 +319,22 @@ def render_strategic_alerts(alerts: list[dict[str, str]]) -> None:
         alerts_html.append(
             f"""
             <div class="orion-alert-item">
-                {badge_html(alert["label"])}
+                <div class="orion-alert-category">{escape(alert["label"])}</div>
                 <div class="orion-alert-title">{escape(alert["title"])}</div>
                 <div class="orion-alert-message">{escape(alert["message"])}</div>
             </div>
             """
         )
 
-    st.markdown(
+    _render_html(
         f"""
-        <div class="orion-alert-list">
-            {''.join(alerts_html)}
+        <div class="orion-cockpit-panel orion-alert-panel">
+            <div class="orion-cockpit-kicker">Alertas Estratégicos</div>
+            <div class="orion-alert-list">
+                {''.join(alerts_html)}
+            </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -619,6 +632,31 @@ def apply_theme() -> None:
                 min-height: 204px;
             }
 
+            .orion-cockpit-panel-primary {
+                min-height: 172px;
+                padding: 26px 28px;
+                background:
+                    linear-gradient(125deg, rgba(212, 166, 74, 0.11), rgba(214, 217, 224, 0.025) 62%, rgba(139, 147, 167, 0.04)),
+                    rgba(15, 17, 21, 0.94);
+            }
+
+            .orion-cockpit-panel-primary .orion-cockpit-title {
+                font-size: 1.44rem;
+                margin-bottom: 12px;
+            }
+
+            .orion-cockpit-panel-primary .orion-cockpit-text {
+                font-size: 1rem;
+                max-width: 980px;
+            }
+
+            .orion-compliance-panel {
+                border-color: rgba(245, 201, 106, 0.28);
+                background:
+                    linear-gradient(160deg, rgba(245, 201, 106, 0.12), rgba(214, 217, 224, 0.018)),
+                    rgba(15, 17, 21, 0.94);
+            }
+
             .orion-cockpit-kicker {
                 color: var(--orion-gold-accent);
                 font-size: 0.72rem;
@@ -645,10 +683,18 @@ def apply_theme() -> None:
 
             .orion-score-value {
                 color: var(--orion-silver);
-                font-size: 3rem;
+                font-size: 4.3rem;
                 font-weight: 820;
                 line-height: 1;
-                margin: 14px 0 12px;
+                margin: 13px 0 13px;
+            }
+
+            .orion-score-status {
+                color: var(--orion-gold-accent);
+                font-size: 0.84rem;
+                font-weight: 820;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
             }
 
             .orion-score-row {
@@ -659,23 +705,83 @@ def apply_theme() -> None:
                 margin-bottom: 10px;
             }
 
+            .orion-risk-posture {
+                position: relative;
+                overflow: hidden;
+            }
+
+            .orion-risk-posture::after {
+                content: "";
+                position: absolute;
+                inset: 0 0 auto 0;
+                height: 3px;
+                background: var(--orion-posture-color, var(--orion-gold));
+            }
+
+            .orion-risk-posture-low {
+                --orion-posture-color: #67C587;
+                border-color: rgba(103, 197, 135, 0.30);
+            }
+
+            .orion-risk-posture-moderate {
+                --orion-posture-color: #F5C96A;
+                border-color: rgba(245, 201, 106, 0.34);
+            }
+
+            .orion-risk-posture-elevated {
+                --orion-posture-color: #D8954D;
+                border-color: rgba(216, 149, 77, 0.34);
+            }
+
+            .orion-risk-posture-critical {
+                --orion-posture-color: #C45F5F;
+                border-color: rgba(196, 95, 95, 0.46);
+            }
+
+            .orion-posture-status {
+                color: var(--orion-posture-color, var(--orion-gold-accent));
+                font-size: 1.42rem;
+                font-weight: 820;
+                line-height: 1.15;
+                margin: 12px 0 10px;
+            }
+
+            .orion-posture-count {
+                color: var(--orion-muted);
+                font-size: 0.88rem;
+                line-height: 1.45;
+                margin-bottom: 12px;
+            }
+
             .orion-alert-list {
                 display: grid;
                 gap: 10px;
+            }
+
+            .orion-alert-panel {
+                min-height: 204px;
             }
 
             .orion-alert-item {
                 border: 1px solid rgba(212, 166, 74, 0.13);
                 border-radius: 8px;
                 background: rgba(214, 217, 224, 0.035);
-                padding: 12px 13px;
+                padding: 13px 14px;
+            }
+
+            .orion-alert-category {
+                color: var(--orion-gold-accent);
+                font-size: 0.68rem;
+                font-weight: 820;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
             }
 
             .orion-alert-title {
                 color: var(--orion-silver);
                 font-size: 0.92rem;
                 font-weight: 780;
-                margin: 7px 0 5px;
+                margin: 8px 0 5px;
             }
 
             .orion-alert-message {
