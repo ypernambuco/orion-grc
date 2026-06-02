@@ -1,16 +1,30 @@
--- ORION GRC demo seed
+-- ORION GRC corporate demo seed
 -- Execute manualmente no SQL Editor do Supabase apenas quando quiser popular a demo.
 -- Este arquivo nao cria usuarios autenticados, nao usa service_role e nao altera secrets.
 
 begin;
 
+-- Normaliza nomes curtos da massa anterior quando ainda nao existe a area corporativa completa.
+update areas
+set nome = 'Recursos Humanos'
+where nome = 'RH'
+  and not exists (select 1 from areas where nome = 'Recursos Humanos');
+
+update areas
+set nome = 'Tecnologia da Informacao'
+where nome = 'TI'
+  and not exists (select 1 from areas where nome = 'Tecnologia da Informacao');
+
 with seed_areas(nome) as (
     values
         ('Financeiro'),
         ('Juridico'),
-        ('RH'),
-        ('TI'),
-        ('Operacoes')
+        ('Compliance'),
+        ('Recursos Humanos'),
+        ('Tecnologia da Informacao'),
+        ('Operacoes'),
+        ('Compras'),
+        ('Auditoria Interna')
 ),
 upsert_areas as (
     insert into areas (nome)
@@ -40,122 +54,272 @@ documentos_demo (
     values
         (
             '11111111-1111-4111-8111-111111111001',
-            'Contrato de prestacao de servicos contabeis',
-            'Contrato',
-            'Financeiro',
-            'Marina Costa',
-            42,
-            'Vigente',
-            'area'
-        ),
-        (
-            '11111111-1111-4111-8111-111111111002',
-            'Politica interna de aprovacao de pagamentos',
+            'Codigo de Conduta Corporativa',
             'Politica',
-            'Financeiro',
-            'Bruno Almeida',
-            -12,
-            'Vencido',
-            'area'
-        ),
-        (
-            '11111111-1111-4111-8111-111111111003',
-            'Relatorio mensal de KPIs financeiros',
-            'KPI',
-            'Financeiro',
-            'Marina Costa',
-            7,
-            'Pendente',
-            'geral'
-        ),
-        (
-            '11111111-1111-4111-8111-111111111004',
-            'Contrato master de fornecedor logistico',
-            'Juridico',
-            'Juridico',
-            'Renata Soares',
-            18,
-            'Em revisao',
-            'juridico'
-        ),
-        (
-            '11111111-1111-4111-8111-111111111005',
-            'Politica de privacidade e retencao documental',
-            'Politica',
-            'Juridico',
-            'Felipe Martins',
-            95,
-            'Vigente',
-            'juridico'
-        ),
-        (
-            '11111111-1111-4111-8111-111111111006',
-            'Dossie de auditoria trabalhista',
-            'Auditoria',
-            'RH',
-            'Camila Rocha',
-            -25,
-            'Vencido',
-            'restrito'
-        ),
-        (
-            '11111111-1111-4111-8111-111111111007',
-            'Fluxograma de admissao e desligamento',
-            'Fluxograma',
-            'RH',
-            'Livia Nogueira',
-            61,
-            'Vigente',
-            'area'
-        ),
-        (
-            '11111111-1111-4111-8111-111111111008',
-            'Relatorio de monitoramento de backups',
-            'Relatorio',
-            'TI',
-            'Rafael Lima',
-            3,
-            'Pendente',
-            'area'
-        ),
-        (
-            '11111111-1111-4111-8111-111111111009',
-            'Politica de seguranca da informacao',
-            'Politica',
-            'TI',
-            'Patricia Menezes',
+            'Compliance',
+            'Helena Duarte',
             120,
             'Vigente',
             'geral'
         ),
         (
+            '11111111-1111-4111-8111-111111111002',
+            'Politica Anticorrupcao e Relacionamento com Terceiros',
+            'Politica',
+            'Compliance',
+            'Marcos Vieira',
+            -18,
+            'Vencido',
+            'geral'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111003',
+            'Relatorio de Conformidade Trimestral',
+            'Relatorio',
+            'Compliance',
+            'Helena Duarte',
+            9,
+            'Pendente',
+            'geral'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111004',
+            'Politica de Privacidade LGPD',
+            'Politica',
+            'Juridico',
+            'Renata Soares',
+            64,
+            'Vigente',
+            'juridico'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111005',
+            'Contrato de Fornecedor Estrategico de Logistica',
+            'Contrato',
+            'Juridico',
+            'Felipe Martins',
+            21,
+            'Vigente',
+            'juridico'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111006',
+            'Matriz de Obrigacoes Contratuais Criticas',
+            'Evidencia',
+            'Juridico',
+            'Renata Soares',
+            4,
+            'Pendente',
+            'juridico'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111007',
+            'Politica de Seguranca da Informacao',
+            'Politica',
+            'Tecnologia da Informacao',
+            'Patricia Menezes',
+            92,
+            'Vigente',
+            'geral'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111008',
+            'Procedimento de Gestao de Acessos Privilegiados',
+            'Procedimento',
+            'Tecnologia da Informacao',
+            'Rafael Lima',
+            -7,
+            'Vencido',
+            'area'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111009',
+            'Procedimento de Backup e Recuperacao',
+            'Procedimento',
+            'Tecnologia da Informacao',
+            'Patricia Menezes',
+            15,
+            'Vigente',
+            'area'
+        ),
+        (
             '11111111-1111-4111-8111-111111111010',
-            'Plano de continuidade operacional',
-            'Controle',
+            'Plano de Continuidade de Negocios',
+            'Procedimento',
             'Operacoes',
             'Diego Farias',
             28,
-            'Em revisao',
+            'Vigente',
             'geral'
         ),
         (
             '11111111-1111-4111-8111-111111111011',
-            'Fluxograma de atendimento a incidentes operacionais',
-            'Fluxograma',
+            'Procedimento de Resposta a Incidentes Operacionais',
+            'Procedimento',
             'Operacoes',
             'Aline Barbosa',
-            75,
+            51,
             'Vigente',
             'area'
         ),
         (
             '11111111-1111-4111-8111-111111111012',
-            'Relatorio de auditoria de controles internos',
-            'Auditoria',
+            'Relatorio de Indicadores de SLA Operacional',
+            'Relatorio',
             'Operacoes',
             'Diego Farias',
-            -5,
+            7,
             'Pendente',
+            'geral'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111013',
+            'Politica de Compras Corporativas',
+            'Politica',
+            'Compras',
+            'Carolina Mendes',
+            138,
+            'Vigente',
+            'geral'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111014',
+            'Procedimento de Homologacao de Fornecedores',
+            'Procedimento',
+            'Compras',
+            'Eduardo Nunes',
+            33,
+            'Vigente',
+            'area'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111015',
+            'Evidencia de Due Diligence de Terceiros',
+            'Evidencia',
+            'Compras',
+            'Carolina Mendes',
+            11,
+            'Pendente',
+            'area'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111016',
+            'Matriz de Segregacao de Funcoes Financeiras',
+            'Evidencia',
+            'Financeiro',
+            'Bruno Almeida',
+            76,
+            'Vigente',
+            'area'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111017',
+            'Politica de Aprovacao de Pagamentos',
+            'Politica',
+            'Financeiro',
+            'Marina Costa',
+            -31,
+            'Vencido',
+            'area'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111018',
+            'Relatorio de Controles Financeiros Mensais',
+            'Relatorio',
+            'Financeiro',
+            'Marina Costa',
+            19,
+            'Vigente',
+            'geral'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111019',
+            'Procedimento de Fechamento Contabil',
+            'Procedimento',
+            'Financeiro',
+            'Bruno Almeida',
+            45,
+            'Vigente',
+            'area'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111020',
+            'Politica de Recrutamento e Desligamento',
+            'Politica',
+            'Recursos Humanos',
+            'Camila Rocha',
+            101,
+            'Vigente',
+            'area'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111021',
+            'Dossie de Auditoria Trabalhista',
+            'Auditoria',
+            'Recursos Humanos',
+            'Livia Nogueira',
+            13,
+            'Pendente',
+            'restrito'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111022',
+            'Matriz de Treinamentos Obrigatorios',
+            'Evidencia',
+            'Recursos Humanos',
+            'Camila Rocha',
+            60,
+            'Vigente',
+            'area'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111023',
+            'Plano Anual de Auditoria Interna',
+            'Auditoria',
+            'Auditoria Interna',
+            'Sofia Andrade',
+            88,
+            'Vigente',
+            'geral'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111024',
+            'Relatorio de Auditoria Interna de Controles',
+            'Auditoria',
+            'Auditoria Interna',
+            'Gustavo Teixeira',
+            36,
+            'Vigente',
+            'geral'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111025',
+            'Evidencia de Testes de Controles Chave',
+            'Evidencia',
+            'Auditoria Interna',
+            'Sofia Andrade',
+            6,
+            'Vigente',
+            'geral'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111026',
+            'Procedimento de Gestao de Crises Corporativas',
+            'Procedimento',
+            'Operacoes',
+            'Aline Barbosa',
+            72,
+            'Vigente',
+            'geral'
+        ),
+        (
+            '11111111-1111-4111-8111-111111111027',
+            'Politica de Retencao e Classificacao de Dados',
+            'Politica',
+            'Tecnologia da Informacao',
+            'Rafael Lima',
+            114,
+            'Vigente',
             'geral'
         )
 )
@@ -192,7 +356,16 @@ on conflict (id) do update set
 with area_map as (
     select id, nome
     from areas
-    where nome in ('Financeiro', 'Juridico', 'RH', 'TI', 'Operacoes')
+    where nome in (
+        'Financeiro',
+        'Juridico',
+        'Compliance',
+        'Recursos Humanos',
+        'Tecnologia da Informacao',
+        'Operacoes',
+        'Compras',
+        'Auditoria Interna'
+    )
 ),
 riscos_demo (
     id,
@@ -207,18 +380,18 @@ riscos_demo (
     values
         (
             '22222222-2222-4222-8222-222222222001',
-            'Financeiro',
-            'Vencimento documental de politica de pagamentos sem revisao formal.',
+            'Tecnologia da Informacao',
+            'Vazamento de dados sensiveis por falha de controle de acesso.',
             4,
-            4,
-            16,
+            5,
+            20,
             'Critico',
-            'area'
+            'geral'
         ),
         (
             '22222222-2222-4222-8222-222222222002',
-            'Financeiro',
-            'Falha de controle interno na dupla aprovacao de despesas recorrentes.',
+            'Tecnologia da Informacao',
+            'Falha de backup corporativo em sistemas criticos.',
             3,
             5,
             15,
@@ -227,38 +400,18 @@ riscos_demo (
         ),
         (
             '22222222-2222-4222-8222-222222222003',
-            'Juridico',
-            'Risco contratual por clausula de renovacao automatica sem alerta operacional.',
-            4,
-            5,
-            20,
-            'Critico',
-            'juridico'
-        ),
-        (
-            '22222222-2222-4222-8222-222222222004',
-            'RH',
-            'Ausencia de evidencia completa em dossie de auditoria trabalhista.',
+            'Tecnologia da Informacao',
+            'Acesso nao autorizado a sistemas criticos por credenciais privilegiadas.',
             4,
             4,
             16,
             'Critico',
-            'restrito'
-        ),
-        (
-            '22222222-2222-4222-8222-222222222005',
-            'TI',
-            'Risco de seguranca da informacao por monitoramento irregular de backups.',
-            3,
-            5,
-            15,
-            'Alto',
             'area'
         ),
         (
-            '22222222-2222-4222-8222-222222222006',
-            'TI',
-            'Ausencia de evidencia de revisao de acessos privilegiados.',
+            '22222222-2222-4222-8222-222222222004',
+            'Compras',
+            'Dependencia de fornecedor estrategico sem plano de contingencia.',
             3,
             4,
             12,
@@ -266,24 +419,164 @@ riscos_demo (
             'area'
         ),
         (
+            '22222222-2222-4222-8222-222222222005',
+            'Compliance',
+            'Nao conformidade LGPD por evidencias incompletas de tratamento de dados.',
+            3,
+            5,
+            15,
+            'Alto',
+            'geral'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222006',
+            'Financeiro',
+            'Fraude interna por falha de segregacao de funcoes financeiras.',
+            4,
+            5,
+            20,
+            'Critico',
+            'area'
+        ),
+        (
             '22222222-2222-4222-8222-222222222007',
             'Operacoes',
-            'Risco operacional por plano de continuidade ainda em revisao.',
-            4,
-            4,
-            16,
-            'Critico',
+            'Interrupcao de servicos criticos por indisponibilidade operacional.',
+            3,
+            5,
+            15,
+            'Alto',
             'geral'
         ),
         (
             '22222222-2222-4222-8222-222222222008',
-            'Operacoes',
-            'Falha de controle interno na reconciliacao de indicadores de SLA.',
+            'Auditoria Interna',
+            'Ausencia de evidencias de auditoria para controles chave.',
+            3,
+            4,
+            12,
+            'Alto',
+            'geral'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222009',
+            'Compras',
+            'Falha em processo de compras por homologacao incompleta de terceiros.',
+            3,
+            3,
+            9,
+            'Medio',
+            'area'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222010',
+            'Financeiro',
+            'Exposicao financeira indevida por aprovacao manual fora da politica.',
+            3,
+            3,
+            9,
+            'Medio',
+            'area'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222011',
+            'Recursos Humanos',
+            'Perda de conhecimento organizacional em processos criticos.',
+            3,
+            3,
+            9,
+            'Medio',
+            'area'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222012',
+            'Compliance',
+            'Descumprimento de politica corporativa por baixa adesao a treinamentos.',
             2,
             4,
             8,
             'Medio',
             'geral'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222013',
+            'Tecnologia da Informacao',
+            'Indisponibilidade de infraestrutura por capacidade insuficiente.',
+            3,
+            3,
+            9,
+            'Medio',
+            'area'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222014',
+            'Operacoes',
+            'Erro humano em processo critico sem dupla verificacao.',
+            2,
+            4,
+            8,
+            'Medio',
+            'area'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222015',
+            'Juridico',
+            'Falha em gestao de terceiros por clausulas contratuais desatualizadas.',
+            2,
+            4,
+            8,
+            'Medio',
+            'juridico'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222016',
+            'Auditoria Interna',
+            'Atraso em plano de acao de auditoria interna.',
+            2,
+            4,
+            8,
+            'Medio',
+            'geral'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222017',
+            'Financeiro',
+            'Lancamento contabil incorreto identificado apos conciliacao.',
+            2,
+            2,
+            4,
+            'Baixo',
+            'area'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222018',
+            'Recursos Humanos',
+            'Atraso pontual em atualizacao cadastral de colaboradores.',
+            2,
+            2,
+            4,
+            'Baixo',
+            'area'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222019',
+            'Operacoes',
+            'Oscilacao em indicador de SLA sem impacto ao cliente final.',
+            1,
+            3,
+            3,
+            'Baixo',
+            'geral'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222020',
+            'Juridico',
+            'Renovacao contratual com pendencia documental de baixa materialidade.',
+            2,
+            2,
+            4,
+            'Baixo',
+            'juridico'
         )
 )
 insert into riscos (
@@ -328,41 +621,65 @@ with evidencias_demo (
         (
             '33333333-3333-4333-8333-333333333001',
             '11111111-1111-4111-8111-111111111002',
-            '22222222-2222-4222-8222-222222222001',
-            'Ata de revisao pendente - pagamentos',
-            'Registro de pendencia para revisao da politica interna de aprovacao de pagamentos.',
+            '22222222-2222-4222-8222-222222222012',
+            'Plano de acao - politica anticorrupcao',
+            'Evidencia de revisao pendente da politica anticorrupcao e reforco de treinamento corporativo.',
             null
         ),
         (
             '33333333-3333-4333-8333-333333333002',
-            '11111111-1111-4111-8111-111111111004',
-            '22222222-2222-4222-8222-222222222003',
-            'Checklist juridico de renovacao contratual',
+            '11111111-1111-4111-8111-111111111006',
+            '22222222-2222-4222-8222-222222222015',
+            'Checklist juridico de obrigacoes contratuais',
             'Checklist usado para validar clausulas criticas e gatilhos de renovacao.',
             null
         ),
         (
             '33333333-3333-4333-8333-333333333003',
-            '11111111-1111-4111-8111-111111111006',
-            '22222222-2222-4222-8222-222222222004',
-            'Relatorio de auditoria trabalhista',
-            'Documento de auditoria com lacunas de evidencia ainda em tratamento.',
+            '11111111-1111-4111-8111-111111111008',
+            '22222222-2222-4222-8222-222222222003',
+            'Registro de revisao de acessos privilegiados',
+            'Documento de controle com lacunas de revisao e evidencias pendentes.',
             null
         ),
         (
             '33333333-3333-4333-8333-333333333004',
-            '11111111-1111-4111-8111-111111111008',
-            '22222222-2222-4222-8222-222222222005',
-            'Log mensal de monitoramento de backups',
-            'Relatorio de monitoramento usado como evidencia de controle de continuidade.',
+            '11111111-1111-4111-8111-111111111009',
+            '22222222-2222-4222-8222-222222222002',
+            'Log mensal de testes de backup',
+            'Evidencia de execucao de rotinas de backup e recuperacao corporativa.',
             null
         ),
         (
             '33333333-3333-4333-8333-333333333005',
             '11111111-1111-4111-8111-111111111010',
             '22222222-2222-4222-8222-222222222007',
-            'Plano de resposta a indisponibilidade operacional',
+            'Teste de continuidade operacional',
             'Documento de apoio para teste de continuidade e resposta a incidentes.',
+            null
+        ),
+        (
+            '33333333-3333-4333-8333-333333333006',
+            '11111111-1111-4111-8111-111111111015',
+            '22222222-2222-4222-8222-222222222009',
+            'Evidencia de homologacao de fornecedores',
+            'Registro de due diligence e validacao de terceiros estrategicos.',
+            null
+        ),
+        (
+            '33333333-3333-4333-8333-333333333007',
+            '11111111-1111-4111-8111-111111111017',
+            '22222222-2222-4222-8222-222222222006',
+            'Ata de revisao de aprovacao de pagamentos',
+            'Registro de pendencia relacionada a segregacao de funcoes e aprovacao financeira.',
+            null
+        ),
+        (
+            '33333333-3333-4333-8333-333333333008',
+            '11111111-1111-4111-8111-111111111025',
+            '22222222-2222-4222-8222-222222222008',
+            'Evidencia de testes de controles chave',
+            'Conjunto de evidencias usado pela auditoria interna para validar controles criticos.',
             null
         )
 )
