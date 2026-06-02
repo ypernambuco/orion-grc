@@ -6,6 +6,9 @@ from services.supabase_client import get_supabase
 from services.ui import (
     apply_chart_theme,
     apply_theme,
+    chart_efficiency_color,
+    chart_risk_density_colors,
+    chart_status_color,
     display_label,
     orion_loading,
     render_compliance_score,
@@ -22,6 +25,9 @@ from services.ui import (
 
 
 st.set_page_config(page_title="ORION GRC | Dashboard", layout="wide")
+
+
+NON_CORPORATE_AREA_PREFIXES = ("QA ", "Teste ", "Test ")
 
 
 def classify_expired(df: pd.DataFrame) -> pd.Series:
@@ -70,6 +76,31 @@ def normalize_area_name(df: pd.DataFrame) -> pd.DataFrame:
         lambda item: item.get("nome") if isinstance(item, dict) else "Sem área"
     )
     return df
+
+
+def is_non_corporate_area_name(value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    return value.strip().startswith(NON_CORPORATE_AREA_PREFIXES)
+
+
+def remove_non_corporate_demo_residue(
+    areas_df: pd.DataFrame,
+    documentos_df: pd.DataFrame,
+    riscos_df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    if not areas_df.empty and "nome" in areas_df:
+        areas_df = areas_df[~areas_df["nome"].apply(is_non_corporate_area_name)].copy()
+
+    if not documentos_df.empty and "area" in documentos_df:
+        documentos_df = documentos_df[
+            ~documentos_df["area"].apply(is_non_corporate_area_name)
+        ].copy()
+
+    if not riscos_df.empty and "area" in riscos_df:
+        riscos_df = riscos_df[~riscos_df["area"].apply(is_non_corporate_area_name)].copy()
+
+    return areas_df, documentos_df, riscos_df
 
 
 def build_area_efficiency(df: pd.DataFrame) -> pd.DataFrame:
@@ -328,6 +359,11 @@ with orion_loading("Carregando visão executiva..."):
     areas_df, documentos_df, riscos_df = load_data()
 documentos_df = normalize_area_name(documentos_df)
 riscos_df = normalize_area_name(riscos_df)
+areas_df, documentos_df, riscos_df = remove_non_corporate_demo_residue(
+    areas_df,
+    documentos_df,
+    riscos_df,
+)
 
 if get_supabase() is None:
     render_status_message(
@@ -413,7 +449,9 @@ with chart_cols[0]:
     )
     if not riscos_df.empty and "area" in riscos_df:
         riscos_area = riscos_df.groupby("area", as_index=False).size()
+        riscos_area = riscos_area.sort_values("size", ascending=False)
         riscos_area["area"] = riscos_area["area"].apply(display_label)
+        riscos_area["color"] = chart_risk_density_colors(riscos_area["size"])
         fig = px.bar(
             riscos_area,
             x="area",
@@ -421,7 +459,7 @@ with chart_cols[0]:
             labels={"size": "Riscos", "area": "Área"},
         )
         fig.update_traces(
-            marker_color="#D4A64A",
+            marker_color=riscos_area["color"].tolist(),
             marker_line_color="rgba(245,201,106,0.28)",
             marker_line_width=1,
             hovertemplate="<b>%{x}</b><br>Riscos: %{y}<extra></extra>",
@@ -444,12 +482,14 @@ with chart_cols[1]:
     if not documentos_df.empty and "status" in documentos_df:
         status_df = documentos_df.groupby("status", as_index=False).size()
         status_df["status"] = status_df["status"].apply(display_label)
+        status_df["color"] = status_df["status"].apply(chart_status_color)
         fig = px.pie(
             status_df,
             names="status",
             values="size",
             hole=0.58,
-            color_discrete_sequence=["#D4A64A", "#F5C96A", "#C45F5F", "#D6D9E0"],
+            color="status",
+            color_discrete_map=dict(zip(status_df["status"], status_df["color"])),
         )
         fig.update_traces(
             textposition="inside",
@@ -475,6 +515,7 @@ efficiency_df = metrics["organizational_efficiency"]["data"]
 if not efficiency_df.empty:
     efficiency_df = efficiency_df.copy()
     efficiency_df["area"] = efficiency_df["area"].apply(display_label)
+    efficiency_df["color"] = efficiency_df["eficiencia"].apply(chart_efficiency_color)
     fig = px.bar(
         efficiency_df,
         x="area",
@@ -486,7 +527,7 @@ if not efficiency_df.empty:
     fig.update_traces(
         texttemplate="%{text}%",
         textposition="outside",
-        marker_color="#D6D9E0",
+        marker_color=efficiency_df["color"].tolist(),
         marker_line_color="rgba(245,201,106,0.28)",
         marker_line_width=1,
         hovertemplate="<b>%{x}</b><br>Eficiência: %{y}%<extra></extra>",

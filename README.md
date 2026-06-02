@@ -81,6 +81,7 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 - Area-based tracking
 - Document lifecycle management
 - Operational efficiency by area
+- Semantic chart colors for status, risk concentration and area efficiency
 - Plotly analytics dashboards
 - Supabase cloud persistence
 - Corporate demo dataset with realistic documents, risks and evidence

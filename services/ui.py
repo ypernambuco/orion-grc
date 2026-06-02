@@ -10,6 +10,9 @@ __all__ = [
     "apply_chart_theme",
     "apply_theme",
     "badge_html",
+    "chart_efficiency_color",
+    "chart_risk_density_colors",
+    "chart_status_color",
     "display_dataframe",
     "display_label",
     "orion_loading",
@@ -29,6 +32,18 @@ __all__ = [
     "render_status_message",
     "render_strategic_alerts",
 ]
+
+
+CHART_COLORS = {
+    "healthy": "#5EAD7A",
+    "attention": "#F5C96A",
+    "elevated": "#D8954D",
+    "critical": "#C45F5F",
+    "neutral": "#D6D9E0",
+    "gold_low": "#8A6A2E",
+    "gold_mid": "#D4A64A",
+    "gold_high": "#F5C96A",
+}
 
 
 NAV_ITEMS = [
@@ -52,6 +67,47 @@ DISPLAY_LABELS = {
     "Juridico": "Jurídico",
     "Operacoes": "Operações",
 }
+
+
+def chart_status_color(status: str) -> str:
+    semantic_colors = {
+        "Vigente": CHART_COLORS["healthy"],
+        "Pendente": CHART_COLORS["attention"],
+        "Vencido": CHART_COLORS["critical"],
+    }
+    return semantic_colors.get(display_label(status), CHART_COLORS["neutral"])
+
+
+def chart_efficiency_color(value: float) -> str:
+    if value >= 90:
+        return CHART_COLORS["healthy"]
+    if value >= 70:
+        return CHART_COLORS["attention"]
+    if value >= 50:
+        return CHART_COLORS["elevated"]
+    return CHART_COLORS["critical"]
+
+
+def chart_risk_density_colors(values) -> list[str]:
+    values_list = [float(value) for value in values]
+    if not values_list:
+        return []
+
+    minimum = min(values_list)
+    maximum = max(values_list)
+    if minimum == maximum:
+        return [CHART_COLORS["gold_mid"] for _ in values_list]
+
+    colors = []
+    for value in values_list:
+        ratio = (value - minimum) / (maximum - minimum)
+        if ratio < 0.34:
+            colors.append(CHART_COLORS["gold_low"])
+        elif ratio < 0.67:
+            colors.append(CHART_COLORS["gold_mid"])
+        else:
+            colors.append(CHART_COLORS["gold_high"])
+    return colors
 
 
 DISPLAY_REPLACEMENTS = (
