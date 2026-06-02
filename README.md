@@ -22,7 +22,7 @@ Current scope:
 - No role-based access control yet
 - No AI features yet
 - Supabase/PostgreSQL persistence
-- Corporate demo seed available, but not executed automatically
+- Corporate demo seed available through a local administrative loader
 
 ---
 
@@ -133,6 +133,12 @@ Professional demo data is available in:
 database/seed_demo.sql
 ```
 
+It can be loaded locally with:
+
+```bash
+python scripts/load_demo_data.py
+```
+
 The seed includes a fictional medium-sized organization with 8 areas:
 
 - Financeiro
@@ -159,7 +165,7 @@ It also includes 20 risks distributed across multiple areas and severity levels:
 
 The dataset creates a credible executive narrative with active critical risks, pending documents, expired documents, efficiency variation by area and richer charts for operational analysis. It also includes evidence records linked to selected documents and risks for future audit workflows.
 
-The seed is intentionally manual. It is not executed automatically by the app.
+The loader is intentionally administrative and is not executed automatically by the app. It reads `database/seed_demo.sql`, applies the demo records with `SUPABASE_SERVICE_ROLE_KEY`, and prints validation totals for areas, documents and risks. The operation is idempotent for the demo records and does not require changes to the application key.
 
 ---
 
@@ -197,11 +203,13 @@ cp .env.example .env
 ```env
 SUPABASE_URL=
 SUPABASE_KEY=
+# Optional: only for local administrative scripts
+SUPABASE_SERVICE_ROLE_KEY=
 ```
 
 Use the Supabase `anon public` key only.
 
-Do not use `service_role` in the app.
+Do not use `service_role` in the app. `SUPABASE_SERVICE_ROLE_KEY` is only used by `scripts/load_demo_data.py` to load the corporate demo data locally.
 
 On Streamlit Cloud, configure the same values in `st.secrets`:
 
@@ -216,7 +224,17 @@ SUPABASE_KEY = "your-anon-public-key"
 database/schema.sql
 ```
 
-6. Optionally execute the manual demo seed:
+6. Optionally load the corporate demo seed:
+
+Add `SUPABASE_SERVICE_ROLE_KEY` to your local `.env`, then run:
+
+```bash
+python scripts/load_demo_data.py
+```
+
+The script exits before loading data if `SUPABASE_SERVICE_ROLE_KEY` is not configured.
+
+It reads:
 
 ```text
 database/seed_demo.sql
