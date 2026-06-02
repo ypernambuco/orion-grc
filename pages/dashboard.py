@@ -1,5 +1,3 @@
-from html import escape
-
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -8,12 +6,18 @@ from services.supabase_client import get_supabase
 from services.ui import (
     apply_chart_theme,
     apply_theme,
-    badge_html,
     display_label,
-    render_card,
+    orion_loading,
+    render_compliance_score,
     render_empty_state,
+    render_executive_summary,
     render_hero,
+    render_kpi_card,
+    render_orion_chart,
+    render_risk_posture,
     render_sidebar,
+    render_status_message,
+    render_strategic_alerts,
 )
 
 
@@ -49,7 +53,11 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
             .data
         )
     except Exception as exc:
-        st.error(f"Não foi possível carregar os dados do Supabase: {exc}")
+        render_status_message(
+            f"Não foi possível carregar os dados do Supabase: {exc}",
+            title="Dados indisponíveis",
+            kind="error",
+        )
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     return pd.DataFrame(areas), pd.DataFrame(documentos), pd.DataFrame(riscos)
 
@@ -305,176 +313,7 @@ def generate_strategic_alerts(
     return alerts[:5]
 
 
-def render_cockpit_styles() -> None:
-    st.markdown(
-        """
-        <style>
-            .orion-cockpit-panel {
-                border: 1px solid rgba(212, 166, 74, 0.15);
-                border-radius: 8px;
-                background:
-                    linear-gradient(140deg, rgba(212, 166, 74, 0.085), rgba(214, 217, 224, 0.022)),
-                    rgba(15, 17, 21, 0.92);
-                box-shadow: 0 22px 52px rgba(0, 0, 0, 0.34);
-                padding: 22px 24px;
-                min-height: 204px;
-            }
-
-            .orion-cockpit-kicker {
-                color: var(--orion-gold-accent);
-                font-size: 0.72rem;
-                font-weight: 780;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                margin-bottom: 10px;
-            }
-
-            .orion-cockpit-title {
-                color: var(--orion-silver);
-                font-size: 1.2rem;
-                font-weight: 800;
-                line-height: 1.25;
-                margin-bottom: 10px;
-            }
-
-            .orion-cockpit-text {
-                color: var(--orion-muted-strong);
-                font-size: 0.95rem;
-                line-height: 1.56;
-                margin: 0;
-            }
-
-            .orion-score-value {
-                color: var(--orion-silver);
-                font-size: 3rem;
-                font-weight: 820;
-                line-height: 1;
-                margin: 14px 0 12px;
-            }
-
-            .orion-score-row {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                flex-wrap: wrap;
-                margin-bottom: 10px;
-            }
-
-            .orion-alert-list {
-                display: grid;
-                gap: 10px;
-            }
-
-            .orion-alert-item {
-                border: 1px solid rgba(212, 166, 74, 0.13);
-                border-radius: 8px;
-                background: rgba(214, 217, 224, 0.035);
-                padding: 12px 13px;
-            }
-
-            .orion-alert-title {
-                color: var(--orion-silver);
-                font-size: 0.92rem;
-                font-weight: 780;
-                margin: 7px 0 5px;
-            }
-
-            .orion-alert-message {
-                color: var(--orion-muted);
-                font-size: 0.85rem;
-                line-height: 1.45;
-            }
-
-            .orion-section-break {
-                margin-top: 30px;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_compliance_score(metrics: dict[str, object]) -> None:
-    st.markdown(
-        f"""
-        <div class="orion-cockpit-panel">
-            <div class="orion-cockpit-kicker">Compliance Score</div>
-            <div class="orion-score-value">{metrics['conformidade']}%</div>
-            <div class="orion-score-row">
-                {badge_html(str(metrics["compliance_badge"]))}
-                <span class="orion-cockpit-title">{escape(str(metrics["compliance_status"]))}</span>
-            </div>
-            <p class="orion-cockpit-text">{escape(str(metrics["compliance_description"]))}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_risk_posture(metrics: dict[str, object]) -> None:
-    posture = metrics["risk_posture"]
-    st.markdown(
-        f"""
-        <div class="orion-cockpit-panel">
-            <div class="orion-cockpit-kicker">Risk Posture</div>
-            <div class="orion-cockpit-title">Postura {escape(str(posture["status"]))}</div>
-            <div class="orion-score-row">
-                {badge_html(str(posture["badge"]))}
-                <span class="orion-cockpit-text">{metrics['riscos_criticos']} risco(s) crítico(s)</span>
-            </div>
-            <p class="orion-cockpit-text">{escape(str(posture["description"]))}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_executive_summary(summary: str) -> None:
-    st.markdown(
-        f"""
-        <div class="orion-cockpit-panel">
-            <div class="orion-cockpit-kicker">Executive Summary</div>
-            <div class="orion-cockpit-title">Leitura estratégica do momento</div>
-            <p class="orion-cockpit-text">{escape(summary)}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_strategic_alerts(alerts: list[dict[str, str]]) -> None:
-    if not alerts:
-        render_empty_state(
-            "Sem alertas estratégicos",
-            "A visão atual não aponta documentos vencidos, pendências relevantes, riscos críticos ou áreas sem cobertura.",
-            "Mantenha a rotina de revisão para preservar a estabilidade operacional.",
-        )
-        return
-
-    alerts_html = []
-    for alert in alerts:
-        alerts_html.append(
-            f"""
-            <div class="orion-alert-item">
-                {badge_html(alert["label"])}
-                <div class="orion-alert-title">{escape(alert["title"])}</div>
-                <div class="orion-alert-message">{escape(alert["message"])}</div>
-            </div>
-            """
-        )
-
-    st.markdown(
-        f"""
-        <div class="orion-alert-list">
-            {''.join(alerts_html)}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 apply_theme()
-render_cockpit_styles()
 render_sidebar("Dashboard")
 render_hero(
     "Vaekor Labs | ORION GRC",
@@ -485,13 +324,17 @@ render_hero(
     ),
 )
 
-with st.spinner("Carregando visão executiva..."):
+with orion_loading("Carregando visão executiva..."):
     areas_df, documentos_df, riscos_df = load_data()
 documentos_df = normalize_area_name(documentos_df)
 riscos_df = normalize_area_name(riscos_df)
 
 if get_supabase() is None:
-    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets para carregar os dados.")
+    render_status_message(
+        "Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets para carregar os dados.",
+        title="Conexão de dados pendente",
+        kind="warning",
+    )
 
 metrics = calculate_cockpit_metrics(areas_df, documentos_df, riscos_df)
 executive_summary = generate_executive_summary(metrics)
@@ -519,19 +362,19 @@ st.markdown(
 )
 metric_cols = st.columns(3)
 with metric_cols[0]:
-    render_card(
+    render_kpi_card(
         "Conformidade geral",
         f"{metrics['conformidade']}%",
         "Base consolidada" if metrics["total_documentos"] else "Aguardando dados documentais.",
     )
 with metric_cols[1]:
-    render_card(
+    render_kpi_card(
         "Documentos vencidos",
         str(metrics["documentos_vencidos"]),
         "Sem alertas" if metrics["documentos_vencidos"] == 0 else "Requer regularização.",
     )
 with metric_cols[2]:
-    render_card(
+    render_kpi_card(
         "Documentos pendentes",
         str(metrics["documentos_pendentes"]),
         "Fluxo controlado" if metrics["documentos_pendentes"] == 0 else "Acompanhar resolução.",
@@ -539,19 +382,19 @@ with metric_cols[2]:
 
 metric_cols = st.columns(3)
 with metric_cols[0]:
-    render_card(
+    render_kpi_card(
         "Riscos críticos",
         str(metrics["riscos_criticos"]),
         "Sem exposição crítica" if metrics["riscos_criticos"] == 0 else "Prioridade executiva.",
     )
 with metric_cols[1]:
-    render_card(
+    render_kpi_card(
         "Áreas monitoradas",
         str(metrics["total_areas"]),
         "Unidades corporativas no escopo do cockpit.",
     )
 with metric_cols[2]:
-    render_card(
+    render_kpi_card(
         "Riscos registrados",
         str(metrics["total_riscos"]),
         "Eventos classificados na matriz operacional.",
@@ -587,7 +430,7 @@ with chart_cols[0]:
             hovertemplate="<b>%{x}</b><br>Riscos: %{y}<extra></extra>",
         )
         apply_chart_theme(fig, height=350)
-        st.plotly_chart(fig, width="stretch")
+        render_orion_chart(fig)
     else:
         render_empty_state(
             "Sem riscos para consolidar",
@@ -618,7 +461,7 @@ with chart_cols[1]:
             hovertemplate="<b>%{label}</b><br>Documentos: %{value}<extra></extra>",
         )
         apply_chart_theme(fig, height=350)
-        st.plotly_chart(fig, width="stretch")
+        render_orion_chart(fig)
     else:
         render_empty_state(
             "Sem documentos para analisar",
@@ -652,7 +495,7 @@ if not efficiency_df.empty:
         hovertemplate="<b>%{x}</b><br>Eficiência: %{y}%<extra></extra>",
     )
     apply_chart_theme(fig, height=390)
-    st.plotly_chart(fig, width="stretch")
+    render_orion_chart(fig)
 else:
     render_empty_state(
         "Eficiência ainda indisponível",

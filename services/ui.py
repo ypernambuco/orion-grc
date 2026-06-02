@@ -1,6 +1,7 @@
 import re
+from contextlib import contextmanager
 from html import escape
-from typing import Optional
+from typing import Iterator, Optional
 
 import streamlit as st
 
@@ -11,11 +12,22 @@ __all__ = [
     "badge_html",
     "display_dataframe",
     "display_label",
+    "orion_loading",
+    "render_alert_card",
     "render_card",
+    "render_compliance_score",
     "render_data_table",
     "render_empty_state",
+    "render_executive_summary",
     "render_hero",
+    "render_insight_card",
+    "render_kpi_card",
+    "render_module_card",
+    "render_orion_chart",
+    "render_risk_posture",
     "render_sidebar",
+    "render_status_message",
+    "render_strategic_alerts",
 ]
 
 
@@ -165,6 +177,154 @@ def render_empty_state(title: str, message: str, action: Optional[str] = None) -
     )
 
 
+def _status_message_html(message: str, title: Optional[str] = None, kind: str = "info") -> str:
+    safe_kind = kind if kind in {"info", "warning", "success", "error"} else "info"
+    title_html = (
+        f'<div class="orion-status-title">{escape(title)}</div>'
+        if title
+        else ""
+    )
+    return f"""
+    <div class="orion-status-message orion-status-message-{safe_kind}" role="status" aria-live="polite">
+        {title_html}
+        <p class="orion-status-text">{escape(message)}</p>
+    </div>
+    """
+
+
+def render_status_message(message: str, title: Optional[str] = None, kind: str = "info") -> None:
+    st.markdown(
+        _status_message_html(message, title=title, kind=kind),
+        unsafe_allow_html=True,
+    )
+
+
+@contextmanager
+def orion_loading(message: str) -> Iterator[None]:
+    placeholder = st.empty()
+    placeholder.markdown(
+        f'<div class="orion-loading" role="status" aria-live="polite">{escape(message)}</div>',
+        unsafe_allow_html=True,
+    )
+    try:
+        yield
+    finally:
+        placeholder.empty()
+
+
+def _render_orion_card(label: str, value: str, note: str, variant: str, compact: bool = False) -> None:
+    variant_class = f"orion-card-{variant}" if variant else ""
+    compact_class = "orion-card-compact" if compact else ""
+    card_class = " ".join(
+        item for item in ["orion-card", variant_class, compact_class] if item
+    )
+    st.markdown(
+        f"""
+        <div class="{card_class}">
+            <div class="orion-card-label">{escape(label)}</div>
+            <div class="orion-card-value">{escape(value)}</div>
+            <div class="orion-card-note">{escape(note)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_kpi_card(label: str, value: str, note: str) -> None:
+    _render_orion_card(label, value, note, "kpi")
+
+
+def render_insight_card(label: str, value: str, note: str) -> None:
+    _render_orion_card(label, value, note, "insight")
+
+
+def render_module_card(label: str, value: str, note: str, compact: bool = False) -> None:
+    _render_orion_card(label, value, note, "module", compact=compact)
+
+
+def render_alert_card(label: str, value: str, note: str) -> None:
+    _render_orion_card(label, value, note, "alert")
+
+
+def render_compliance_score(metrics: dict[str, object]) -> None:
+    st.markdown(
+        f"""
+        <div class="orion-cockpit-panel">
+            <div class="orion-cockpit-kicker">Compliance Score</div>
+            <div class="orion-score-value">{escape(str(metrics['conformidade']))}%</div>
+            <div class="orion-score-row">
+                {badge_html(str(metrics["compliance_badge"]))}
+                <span class="orion-cockpit-title">{escape(str(metrics["compliance_status"]))}</span>
+            </div>
+            <p class="orion-cockpit-text">{escape(str(metrics["compliance_description"]))}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_risk_posture(metrics: dict[str, object]) -> None:
+    posture = metrics["risk_posture"]
+    st.markdown(
+        f"""
+        <div class="orion-cockpit-panel">
+            <div class="orion-cockpit-kicker">Risk Posture</div>
+            <div class="orion-cockpit-title">Postura {escape(str(posture["status"]))}</div>
+            <div class="orion-score-row">
+                {badge_html(str(posture["badge"]))}
+                <span class="orion-cockpit-text">{escape(str(metrics['riscos_criticos']))} risco(s) crítico(s)</span>
+            </div>
+            <p class="orion-cockpit-text">{escape(str(posture["description"]))}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_executive_summary(summary: str) -> None:
+    st.markdown(
+        f"""
+        <div class="orion-cockpit-panel">
+            <div class="orion-cockpit-kicker">Executive Summary</div>
+            <div class="orion-cockpit-title">Leitura estratégica do momento</div>
+            <p class="orion-cockpit-text">{escape(summary)}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_strategic_alerts(alerts: list[dict[str, str]]) -> None:
+    if not alerts:
+        render_empty_state(
+            "Sem alertas estratégicos",
+            "A visão atual não aponta documentos vencidos, pendências relevantes, riscos críticos ou áreas sem cobertura.",
+            "Mantenha a rotina de revisão para preservar a estabilidade operacional.",
+        )
+        return
+
+    alerts_html = []
+    for alert in alerts:
+        alerts_html.append(
+            f"""
+            <div class="orion-alert-item">
+                {badge_html(alert["label"])}
+                <div class="orion-alert-title">{escape(alert["title"])}</div>
+                <div class="orion-alert-message">{escape(alert["message"])}</div>
+            </div>
+            """
+        )
+
+    st.markdown(
+        f"""
+        <div class="orion-alert-list">
+            {''.join(alerts_html)}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def apply_theme() -> None:
     st.markdown(
         """
@@ -229,8 +389,8 @@ def apply_theme() -> None:
             [data-testid="stSidebar"] a[data-testid="stPageLink"] {
                 border: 1px solid transparent;
                 border-radius: 8px;
-                min-height: 42px;
-                padding: 0.62rem 0.72rem;
+                min-height: 38px;
+                padding: 0.54rem 0.72rem;
                 transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
             }
 
@@ -243,7 +403,7 @@ def apply_theme() -> None:
 
             [data-testid="stSidebar"] [data-testid="stPageLink"] p,
             [data-testid="stSidebar"] a[data-testid="stPageLink"] p {
-                font-size: 0.94rem;
+                font-size: 0.9rem;
                 font-weight: 720;
             }
 
@@ -406,6 +566,201 @@ def apply_theme() -> None:
                 margin-top: 12px;
             }
 
+            .orion-card-kpi {
+                min-height: 142px;
+                border-top-color: rgba(245, 201, 106, 0.34);
+                background:
+                    linear-gradient(180deg, rgba(245, 201, 106, 0.055), rgba(214, 217, 224, 0.012)),
+                    var(--orion-panel);
+            }
+
+            .orion-card-kpi .orion-card-value {
+                font-size: 2.05rem;
+                line-height: 1.05;
+            }
+
+            .orion-card-insight {
+                min-height: 150px;
+                background:
+                    linear-gradient(135deg, rgba(212, 166, 74, 0.075), rgba(214, 217, 224, 0.018)),
+                    rgba(15, 17, 21, 0.9);
+            }
+
+            .orion-card-module {
+                min-height: 150px;
+                background:
+                    linear-gradient(180deg, rgba(214, 217, 224, 0.035), rgba(212, 166, 74, 0.018)),
+                    var(--orion-panel);
+            }
+
+            .orion-card-alert {
+                min-height: 0;
+                padding: 14px 15px;
+                box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+            }
+
+            .orion-card-alert .orion-card-value {
+                font-size: 0.96rem;
+            }
+
+            .orion-card-alert .orion-card-note {
+                font-size: 0.84rem;
+                margin-top: 8px;
+            }
+
+            .orion-cockpit-panel {
+                border: 1px solid rgba(212, 166, 74, 0.15);
+                border-radius: 8px;
+                background:
+                    linear-gradient(140deg, rgba(212, 166, 74, 0.085), rgba(214, 217, 224, 0.022)),
+                    rgba(15, 17, 21, 0.92);
+                box-shadow: 0 22px 52px rgba(0, 0, 0, 0.34);
+                padding: 22px 24px;
+                min-height: 204px;
+            }
+
+            .orion-cockpit-kicker {
+                color: var(--orion-gold-accent);
+                font-size: 0.72rem;
+                font-weight: 780;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                margin-bottom: 10px;
+            }
+
+            .orion-cockpit-title {
+                color: var(--orion-silver);
+                font-size: 1.2rem;
+                font-weight: 800;
+                line-height: 1.25;
+                margin-bottom: 10px;
+            }
+
+            .orion-cockpit-text {
+                color: var(--orion-muted-strong);
+                font-size: 0.95rem;
+                line-height: 1.56;
+                margin: 0;
+            }
+
+            .orion-score-value {
+                color: var(--orion-silver);
+                font-size: 3rem;
+                font-weight: 820;
+                line-height: 1;
+                margin: 14px 0 12px;
+            }
+
+            .orion-score-row {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex-wrap: wrap;
+                margin-bottom: 10px;
+            }
+
+            .orion-alert-list {
+                display: grid;
+                gap: 10px;
+            }
+
+            .orion-alert-item {
+                border: 1px solid rgba(212, 166, 74, 0.13);
+                border-radius: 8px;
+                background: rgba(214, 217, 224, 0.035);
+                padding: 12px 13px;
+            }
+
+            .orion-alert-title {
+                color: var(--orion-silver);
+                font-size: 0.92rem;
+                font-weight: 780;
+                margin: 7px 0 5px;
+            }
+
+            .orion-alert-message {
+                color: var(--orion-muted);
+                font-size: 0.85rem;
+                line-height: 1.45;
+            }
+
+            .orion-status-message {
+                border: 1px solid rgba(212, 166, 74, 0.14);
+                border-radius: 8px;
+                background:
+                    linear-gradient(135deg, rgba(212, 166, 74, 0.06), rgba(214, 217, 224, 0.018)),
+                    rgba(15, 17, 21, 0.86);
+                padding: 15px 17px;
+                margin: 12px 0 16px;
+                box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+            }
+
+            .orion-status-message-warning {
+                border-color: rgba(245, 201, 106, 0.32);
+                background:
+                    linear-gradient(135deg, rgba(212, 166, 74, 0.10), rgba(214, 217, 224, 0.018)),
+                    rgba(15, 17, 21, 0.88);
+            }
+
+            .orion-status-message-success {
+                border-color: rgba(139, 147, 167, 0.30);
+            }
+
+            .orion-status-message-error {
+                border-color: rgba(196, 95, 95, 0.48);
+                background:
+                    linear-gradient(135deg, rgba(196, 95, 95, 0.12), rgba(214, 217, 224, 0.018)),
+                    rgba(15, 17, 21, 0.88);
+            }
+
+            .orion-status-title {
+                color: var(--orion-silver);
+                font-size: 0.92rem;
+                font-weight: 790;
+                line-height: 1.3;
+                margin-bottom: 5px;
+            }
+
+            .orion-status-text {
+                color: var(--orion-muted-strong);
+                font-size: 0.9rem;
+                line-height: 1.48;
+                margin: 0;
+            }
+
+            .orion-loading {
+                position: relative;
+                border: 1px solid rgba(212, 166, 74, 0.16);
+                border-radius: 8px;
+                background: rgba(15, 17, 21, 0.84);
+                color: var(--orion-muted-strong);
+                font-size: 0.9rem;
+                line-height: 1.4;
+                margin: 10px 0 16px;
+                padding: 14px 16px 14px 42px;
+                box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+            }
+
+            .orion-loading::before {
+                content: "";
+                position: absolute;
+                left: 16px;
+                top: 50%;
+                width: 12px;
+                height: 12px;
+                margin-top: -6px;
+                border-radius: 999px;
+                border: 2px solid rgba(245, 201, 106, 0.16);
+                border-top-color: var(--orion-gold-accent);
+                animation: orion-spin 900ms linear infinite;
+            }
+
+            @keyframes orion-spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
             .orion-badge {
                 display: inline-flex;
                 align-items: center;
@@ -509,10 +864,13 @@ def apply_theme() -> None:
             }
 
             .orion-nav-caption {
-                margin: -0.34rem 0 0.78rem 0.72rem;
+                border-left: 2px solid transparent;
+                margin: -0.34rem 0 0.58rem 0.26rem;
+                padding: 0.1rem 0 0.1rem 0.46rem;
             }
 
             .orion-nav-caption-active {
+                border-left-color: var(--orion-gold-accent);
                 color: var(--orion-gold-accent);
                 font-weight: 720;
             }
@@ -534,7 +892,20 @@ def apply_theme() -> None:
             .orion-divider {
                 height: 1px;
                 background: linear-gradient(90deg, rgba(212, 166, 74, 0.18), rgba(214, 217, 224, 0.055));
-                margin: 16px 0;
+                margin: 14px 0;
+            }
+
+            .orion-nav-section-label {
+                color: var(--orion-muted);
+                font-size: 0.68rem;
+                font-weight: 780;
+                letter-spacing: 0.09em;
+                margin: 0 0 0.55rem 0.2rem;
+                text-transform: uppercase;
+            }
+
+            .orion-section-break {
+                margin-top: 30px;
             }
 
             .orion-table-note {
@@ -749,6 +1120,7 @@ def render_sidebar(active: str) -> None:
         )
         st.caption("Governança, riscos e eficiência operacional para decisões executivas.")
         st.markdown('<div class="orion-divider"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="orion-nav-section-label">Workspace</div>', unsafe_allow_html=True)
 
         for path, label, caption in NAV_ITEMS:
             st.page_link(path, label=label)
@@ -776,17 +1148,7 @@ def render_hero(eyebrow: str, title: str, subtitle: str) -> None:
 
 
 def render_card(label: str, value: str, note: str, compact: bool = False) -> None:
-    card_class = "orion-card orion-card-compact" if compact else "orion-card"
-    st.markdown(
-        f"""
-        <div class="{card_class}">
-            <div class="orion-card-label">{label}</div>
-            <div class="orion-card-value">{value}</div>
-            <div class="orion-card-note">{note}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    _render_orion_card(label, value, note, "", compact=compact)
 
 
 def apply_chart_theme(fig, height: int = 360):
@@ -795,8 +1157,9 @@ def apply_chart_theme(fig, height: int = 360):
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(15,17,21,0.86)",
         height=height,
-        margin=dict(l=22, r=18, t=28, b=28),
+        margin=dict(l=22, r=18, t=18, b=28),
         font=dict(family="Inter, Segoe UI, sans-serif", color="#D6D9E0", size=12),
+        dragmode=False,
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -813,17 +1176,30 @@ def apply_chart_theme(fig, height: int = 360):
         ),
     )
     fig.update_xaxes(
-        gridcolor="rgba(214,217,224,0.055)",
+        gridcolor="rgba(214,217,224,0.04)",
         zerolinecolor="rgba(212,166,74,0.16)",
         linecolor="rgba(212,166,74,0.16)",
+        showline=False,
         tickfont=dict(color="#8B93A7"),
         title_font=dict(color="#8B93A7"),
     )
     fig.update_yaxes(
-        gridcolor="rgba(214,217,224,0.055)",
+        gridcolor="rgba(214,217,224,0.04)",
         zerolinecolor="rgba(212,166,74,0.16)",
         linecolor="rgba(212,166,74,0.16)",
+        showline=False,
         tickfont=dict(color="#8B93A7"),
         title_font=dict(color="#8B93A7"),
     )
     return fig
+
+
+def render_orion_chart(fig) -> None:
+    st.plotly_chart(
+        fig,
+        width="stretch",
+        config={
+            "displayModeBar": False,
+            "responsive": True,
+        },
+    )

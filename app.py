@@ -1,6 +1,13 @@
 import streamlit as st
 
-from services.ui import apply_theme, render_card, render_hero, render_sidebar
+from services.ui import (
+    apply_theme,
+    render_hero,
+    render_insight_card,
+    render_module_card,
+    render_sidebar,
+    render_status_message,
+)
 
 
 st.set_page_config(
@@ -23,19 +30,19 @@ render_hero(
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    render_card(
+    render_insight_card(
         "Governança",
         "Controle corporativo",
         "Centralize controles, responsabilidades e obrigações corporativas em uma visão única de governança.",
     )
 with col2:
-    render_card(
+    render_insight_card(
         "Risk Intelligence",
         "Gestão estratégica",
         "Priorize decisões com base em exposição a riscos, conformidade e impacto operacional.",
     )
 with col3:
-    render_card(
+    render_insight_card(
         "Compliance",
         "Visão executiva",
         "Acompanhe pendências, vencimentos e pontos críticos com clareza para a liderança.",
@@ -60,6 +67,10 @@ vision_items = [
 ]
 for column, (label, note) in zip(vision_cols, vision_items):
     with column:
-        render_card(label, label, note, compact=True)
+        render_module_card(label, label, note, compact=True)
 
-st.info("Governança, compliance e riscos conectados em uma leitura executiva única.")
+render_status_message(
+    "Governança, compliance e riscos conectados em uma leitura executiva única.",
+    title="Visão integrada",
+    kind="success",
+)
