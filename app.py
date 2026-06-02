@@ -13,53 +13,53 @@ st.set_page_config(
 apply_theme()
 render_sidebar("Início")
 render_hero(
-    "Vaekor Labs | Demonstração",
+    "Vaekor Labs | Governança Corporativa",
     "ORION GRC",
     (
-        "Centralize documentos, riscos e pendências operacionais em uma visão "
-        "executiva para governança, auditoria e tomada de decisão."
+        "Centralize governança, riscos, conformidade e eficiência operacional "
+        "em uma visão executiva para tomada de decisão estratégica."
     ),
 )
 
 col1, col2, col3 = st.columns(3)
 with col1:
     render_card(
-        "Produto",
-        "Governança operacional",
-        "Demonstração SaaS para pequenas empresas acompanharem controles, vencimentos e riscos.",
+        "Governança",
+        "Controle corporativo",
+        "Centralize controles, responsabilidades e obrigações corporativas em uma visão única de governança.",
     )
 with col2:
     render_card(
-        "Base técnica",
-        "Streamlit + Supabase",
-        "Arquitetura simples, online e pronta para evoluir para acesso por perfil.",
+        "Risk Intelligence",
+        "Gestão estratégica",
+        "Priorize decisões com base em exposição a riscos, conformidade e impacto operacional.",
     )
 with col3:
     render_card(
-        "Status",
-        "Demonstração sem login",
-        "Versão executiva do MVP, sem autenticação, IA ou controle de acesso.",
+        "Compliance",
+        "Visão executiva",
+        "Acompanhe pendências, vencimentos e pontos críticos com clareza para a liderança.",
     )
 
-st.markdown("### Visão do produto")
+st.markdown("### Governança integrada")
 st.markdown(
     '<p class="orion-section">'
-    "O ORION GRC ajuda empresas pequenas a organizar rotinas de governança sem "
-    "depender de planilhas soltas, pastas desconectadas e controles manuais."
+    "O ORION GRC consolida documentos, riscos, responsabilidades e obrigações "
+    "em uma estrutura orientada a controle, eficiência operacional e visão executiva."
     "</p>",
     unsafe_allow_html=True,
 )
 
 vision_cols = st.columns(5)
 vision_items = [
-    ("Documentos", "Contratos, políticas, relatórios e evidências em um fluxo único."),
-    ("Riscos", "Priorização por impacto, probabilidade e classificação operacional."),
-    ("Pendências", "Acompanhamento de vencimentos e itens fora do fluxo esperado."),
-    ("Áreas", "Visão por Financeiro, Jurídico, RH, TI e Operações."),
-    ("Auditoria", "Base preparada para evidências, histórico e trilhas futuras."),
+    ("Documentos", "Contratos, políticas, relatórios e evidências em um fluxo corporativo único."),
+    ("Riscos", "Priorização estratégica por impacto, probabilidade e criticidade operacional."),
+    ("Pendências", "Acompanhamento de vencimentos, responsabilidades e obrigações em aberto."),
+    ("Áreas", "Visão por unidades responsáveis, controles e compromissos organizacionais."),
+    ("Auditoria", "Rastreabilidade de evidências, histórico e conformidade para governança contínua."),
 ]
 for column, (label, note) in zip(vision_cols, vision_items):
     with column:
         render_card(label, label, note, compact=True)
 
-st.info("Use o menu lateral para acessar Dashboard, Áreas, Documentos e Riscos.")
+st.info("Governança, compliance e riscos conectados em uma leitura executiva única.")

@@ -747,7 +747,7 @@ def render_sidebar(active: str) -> None:
             """,
             unsafe_allow_html=True,
         )
-        st.caption("Governança, riscos e eficiência operacional para pequenas empresas.")
+        st.caption("Governança, riscos e eficiência operacional para decisões executivas.")
         st.markdown('<div class="orion-divider"></div>', unsafe_allow_html=True)
 
         for path, label, caption in NAV_ITEMS:
@@ -759,7 +759,7 @@ def render_sidebar(active: str) -> None:
             )
 
         st.markdown('<div class="orion-divider"></div>', unsafe_allow_html=True)
-        st.caption("Demonstração SaaS sem autenticação nesta versão.")
+        st.caption("Governança corporativa, compliance e risk intelligence em uma visão integrada.")
 
 
 def render_hero(eyebrow: str, title: str, subtitle: str) -> None:
