@@ -1,0 +1,23 @@
+name: Supabase Heartbeat
+
+on:
+  schedule:
+    - cron: "0 12 * * 1,4"
+  workflow_dispatch:
+
+jobs:
+  heartbeat:
+    name: Keep Supabase Active
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
+    steps:
+      - name: Ping areas table
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --location \
+            "${SUPABASE_URL%/}/rest/v1/areas?select=id&limit=1" \
+            --header "apikey: ${SUPABASE_KEY}" \
+            --header "Authorization: Bearer ${SUPABASE_KEY}"
