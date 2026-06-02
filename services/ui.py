@@ -15,6 +15,8 @@ __all__ = [
     "chart_status_color",
     "display_dataframe",
     "display_label",
+    "filter_non_corporate_area_rows",
+    "is_non_corporate_area_name",
     "orion_loading",
     "render_alert_card",
     "render_card",
@@ -44,6 +46,9 @@ CHART_COLORS = {
     "gold_mid": "#D4A64A",
     "gold_high": "#F5C96A",
 }
+
+
+NON_CORPORATE_AREA_PREFIXES = ("QA ", "Teste ", "Test ")
 
 
 NAV_ITEMS = [
@@ -108,6 +113,18 @@ def chart_risk_density_colors(values) -> list[str]:
         else:
             colors.append(CHART_COLORS["gold_high"])
     return colors
+
+
+def is_non_corporate_area_name(value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    return value.strip().startswith(NON_CORPORATE_AREA_PREFIXES)
+
+
+def filter_non_corporate_area_rows(df, column: str = "area"):
+    if df.empty or column not in df:
+        return df
+    return df[~df[column].apply(is_non_corporate_area_name)].copy()
 
 
 DISPLAY_REPLACEMENTS = (

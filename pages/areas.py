@@ -2,7 +2,14 @@ import pandas as pd
 import streamlit as st
 
 from services.supabase_client import get_supabase
-from services.ui import apply_theme, render_data_table, render_empty_state, render_hero, render_sidebar
+from services.ui import (
+    apply_theme,
+    filter_non_corporate_area_rows,
+    render_data_table,
+    render_empty_state,
+    render_hero,
+    render_sidebar,
+)
 
 
 st.set_page_config(page_title="ORION GRC | Áreas", layout="wide")
@@ -17,7 +24,7 @@ def load_areas() -> pd.DataFrame:
     except Exception as exc:
         st.error(f"Não foi possível carregar as áreas: {exc}")
         return pd.DataFrame()
-    return pd.DataFrame(data)
+    return filter_non_corporate_area_rows(pd.DataFrame(data), "nome")
 
 
 apply_theme()

@@ -6,6 +6,8 @@ from services.ui import (
     apply_theme,
     badge_html,
     display_label,
+    filter_non_corporate_area_rows,
+    is_non_corporate_area_name,
     render_data_table,
     render_empty_state,
     render_hero,
@@ -31,10 +33,15 @@ def load_areas() -> list[dict]:
     if supabase is None:
         return []
     try:
-        return supabase.table("areas").select("id, nome").order("nome").execute().data
+        data = supabase.table("areas").select("id, nome").order("nome").execute().data
     except Exception as exc:
         st.error(f"Não foi possível carregar as áreas: {exc}")
         return []
+    return [
+        area
+        for area in data
+        if not is_non_corporate_area_name(area.get("nome"))
+    ]
 
 
 def load_riscos() -> pd.DataFrame:
@@ -57,7 +64,7 @@ def load_riscos() -> pd.DataFrame:
         df["area"] = df["areas"].apply(
             lambda item: item.get("nome") if isinstance(item, dict) else "Sem área"
         )
-    return df
+    return filter_non_corporate_area_rows(df, "area")
 
 
 apply_theme()

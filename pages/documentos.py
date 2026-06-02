@@ -2,7 +2,16 @@ import pandas as pd
 import streamlit as st
 
 from services.supabase_client import get_supabase
-from services.ui import apply_theme, display_label, render_data_table, render_empty_state, render_hero, render_sidebar
+from services.ui import (
+    apply_theme,
+    display_label,
+    filter_non_corporate_area_rows,
+    is_non_corporate_area_name,
+    render_data_table,
+    render_empty_state,
+    render_hero,
+    render_sidebar,
+)
 
 
 st.set_page_config(page_title="ORION GRC | Documentos", layout="wide")
@@ -26,10 +35,15 @@ def load_areas() -> list[dict]:
     if supabase is None:
         return []
     try:
-        return supabase.table("areas").select("id, nome").order("nome").execute().data
+        data = supabase.table("areas").select("id, nome").order("nome").execute().data
     except Exception as exc:
         st.error(f"Não foi possível carregar as áreas: {exc}")
         return []
+    return [
+        area
+        for area in data
+        if not is_non_corporate_area_name(area.get("nome"))
+    ]
 
 
 def load_documentos() -> pd.DataFrame:
@@ -52,7 +66,7 @@ def load_documentos() -> pd.DataFrame:
         df["area"] = df["areas"].apply(
             lambda item: item.get("nome") if isinstance(item, dict) else "Sem área"
         )
-    return df
+    return filter_non_corporate_area_rows(df, "area")
 
 
 apply_theme()

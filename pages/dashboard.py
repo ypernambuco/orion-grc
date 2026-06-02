@@ -10,6 +10,7 @@ from services.ui import (
     chart_risk_density_colors,
     chart_status_color,
     display_label,
+    filter_non_corporate_area_rows,
     orion_loading,
     render_compliance_score,
     render_empty_state,
@@ -25,9 +26,6 @@ from services.ui import (
 
 
 st.set_page_config(page_title="ORION GRC | Dashboard", layout="wide")
-
-
-NON_CORPORATE_AREA_PREFIXES = ("QA ", "Teste ", "Test ")
 
 
 def classify_expired(df: pd.DataFrame) -> pd.Series:
@@ -78,29 +76,16 @@ def normalize_area_name(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def is_non_corporate_area_name(value: object) -> bool:
-    if not isinstance(value, str):
-        return False
-    return value.strip().startswith(NON_CORPORATE_AREA_PREFIXES)
-
-
 def remove_non_corporate_demo_residue(
     areas_df: pd.DataFrame,
     documentos_df: pd.DataFrame,
     riscos_df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    if not areas_df.empty and "nome" in areas_df:
-        areas_df = areas_df[~areas_df["nome"].apply(is_non_corporate_area_name)].copy()
-
-    if not documentos_df.empty and "area" in documentos_df:
-        documentos_df = documentos_df[
-            ~documentos_df["area"].apply(is_non_corporate_area_name)
-        ].copy()
-
-    if not riscos_df.empty and "area" in riscos_df:
-        riscos_df = riscos_df[~riscos_df["area"].apply(is_non_corporate_area_name)].copy()
-
-    return areas_df, documentos_df, riscos_df
+    return (
+        filter_non_corporate_area_rows(areas_df, "nome"),
+        filter_non_corporate_area_rows(documentos_df, "area"),
+        filter_non_corporate_area_rows(riscos_df, "area"),
+    )
 
 
 def build_area_efficiency(df: pd.DataFrame) -> pd.DataFrame:
