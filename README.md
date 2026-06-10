@@ -14,7 +14,7 @@ Developed by Vaekor Labs.
 
 ## Status
 
-Corporate product demo online and validated in production.
+Corporate product demo deployed online for portfolio and functional validation.
 
 Current scope:
 
