@@ -11,7 +11,9 @@ __all__ = [
     "apply_theme",
     "badge_html",
     "chart_efficiency_color",
+    "chart_efficiency_label",
     "chart_risk_density_colors",
+    "chart_risk_density_labels",
     "chart_status_color",
     "display_dataframe",
     "display_label",
@@ -37,14 +39,14 @@ __all__ = [
 
 
 CHART_COLORS = {
-    "healthy": "#5EAD7A",
-    "attention": "#F5C96A",
-    "elevated": "#D8954D",
-    "critical": "#C45F5F",
+    "healthy": "#43B581",
+    "attention": "#E7BC54",
+    "elevated": "#E08A3E",
+    "critical": "#D35D5D",
     "neutral": "#D6D9E0",
-    "gold_low": "#8A6A2E",
+    "gold_low": "#94763A",
     "gold_mid": "#D4A64A",
-    "gold_high": "#F5C96A",
+    "gold_high": "#D86A45",
 }
 
 
@@ -76,11 +78,12 @@ DISPLAY_LABELS = {
 
 def chart_status_color(status: str) -> str:
     semantic_colors = {
-        "Vigente": CHART_COLORS["healthy"],
-        "Pendente": CHART_COLORS["attention"],
-        "Vencido": CHART_COLORS["critical"],
+        "vigente": CHART_COLORS["healthy"],
+        "pendente": CHART_COLORS["attention"],
+        "vencido": CHART_COLORS["critical"],
     }
-    return semantic_colors.get(display_label(status), CHART_COLORS["neutral"])
+    normalized_status = str(display_label(status)).strip().casefold()
+    return semantic_colors.get(normalized_status, CHART_COLORS["neutral"])
 
 
 def chart_efficiency_color(value: float) -> str:
@@ -91,6 +94,16 @@ def chart_efficiency_color(value: float) -> str:
     if value >= 50:
         return CHART_COLORS["elevated"]
     return CHART_COLORS["critical"]
+
+
+def chart_efficiency_label(value: float) -> str:
+    if value >= 90:
+        return "Saudável"
+    if value >= 70:
+        return "Atenção"
+    if value >= 50:
+        return "Baixa eficiência"
+    return "Crítica"
 
 
 def chart_risk_density_colors(values) -> list[str]:
@@ -113,6 +126,28 @@ def chart_risk_density_colors(values) -> list[str]:
         else:
             colors.append(CHART_COLORS["gold_high"])
     return colors
+
+
+def chart_risk_density_labels(values) -> list[str]:
+    values_list = [float(value) for value in values]
+    if not values_list:
+        return []
+
+    minimum = min(values_list)
+    maximum = max(values_list)
+    if minimum == maximum:
+        return ["Média" for _ in values_list]
+
+    labels = []
+    for value in values_list:
+        ratio = (value - minimum) / (maximum - minimum)
+        if ratio < 0.34:
+            labels.append("Baixa")
+        elif ratio < 0.67:
+            labels.append("Média")
+        else:
+            labels.append("Alta")
+    return labels
 
 
 def is_non_corporate_area_name(value: object) -> bool:
@@ -1351,6 +1386,7 @@ def apply_chart_theme(fig, height: int = 360):
             bgcolor="#0F1115",
             bordercolor="#D4A64A",
             font_size=12,
+            font_color="#F4F5F7",
             font_family="Inter, Segoe UI, sans-serif",
         ),
     )
@@ -1359,16 +1395,16 @@ def apply_chart_theme(fig, height: int = 360):
         zerolinecolor="rgba(212,166,74,0.16)",
         linecolor="rgba(212,166,74,0.16)",
         showline=False,
-        tickfont=dict(color="#8B93A7"),
-        title_font=dict(color="#8B93A7"),
+        tickfont=dict(color="#AAB0BE"),
+        title_font=dict(color="#AAB0BE"),
     )
     fig.update_yaxes(
         gridcolor="rgba(214,217,224,0.04)",
         zerolinecolor="rgba(212,166,74,0.16)",
         linecolor="rgba(212,166,74,0.16)",
         showline=False,
-        tickfont=dict(color="#8B93A7"),
-        title_font=dict(color="#8B93A7"),
+        tickfont=dict(color="#AAB0BE"),
+        title_font=dict(color="#AAB0BE"),
     )
     return fig
 

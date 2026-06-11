@@ -7,7 +7,9 @@ from services.ui import (
     apply_chart_theme,
     apply_theme,
     chart_efficiency_color,
+    chart_efficiency_label,
     chart_risk_density_colors,
+    chart_risk_density_labels,
     chart_status_color,
     display_label,
     filter_non_corporate_area_rows,
@@ -437,17 +439,26 @@ with chart_cols[0]:
         riscos_area = riscos_area.sort_values("size", ascending=False)
         riscos_area["area"] = riscos_area["area"].apply(display_label)
         riscos_area["color"] = chart_risk_density_colors(riscos_area["size"])
+        riscos_area["concentracao"] = chart_risk_density_labels(riscos_area["size"])
         fig = px.bar(
             riscos_area,
             x="area",
             y="size",
+            text="size",
+            custom_data=["concentracao"],
             labels={"size": "Riscos", "area": "Área"},
         )
         fig.update_traces(
             marker_color=riscos_area["color"].tolist(),
-            marker_line_color="rgba(245,201,106,0.28)",
+            marker_line_color="rgba(255,255,255,0.18)",
             marker_line_width=1,
-            hovertemplate="<b>%{x}</b><br>Riscos: %{y}<extra></extra>",
+            textposition="outside",
+            textfont=dict(color="#F4F5F7", size=12),
+            cliponaxis=False,
+            hovertemplate=(
+                "<b>%{x}</b><br>Riscos: %{y}"
+                "<br>Concentração relativa: %{customdata[0]}<extra></extra>"
+            ),
         )
         apply_chart_theme(fig, height=350)
         render_orion_chart(fig)
@@ -479,8 +490,12 @@ with chart_cols[1]:
         fig.update_traces(
             textposition="inside",
             textinfo="percent+label",
+            textfont=dict(color="#F7F8FA", size=12),
             marker=dict(line=dict(color="rgba(5,5,5,0.92)", width=2)),
-            hovertemplate="<b>%{label}</b><br>Documentos: %{value}<extra></extra>",
+            hovertemplate=(
+                "<b>%{label}</b><br>Documentos: %{value}"
+                "<br>Participação: %{percent}<extra></extra>"
+            ),
         )
         apply_chart_theme(fig, height=350)
         render_orion_chart(fig)
@@ -501,21 +516,28 @@ if not efficiency_df.empty:
     efficiency_df = efficiency_df.copy()
     efficiency_df["area"] = efficiency_df["area"].apply(display_label)
     efficiency_df["color"] = efficiency_df["eficiencia"].apply(chart_efficiency_color)
+    efficiency_df["faixa"] = efficiency_df["eficiencia"].apply(chart_efficiency_label)
     fig = px.bar(
         efficiency_df,
         x="area",
         y="eficiencia",
         text="eficiencia",
+        custom_data=["faixa"],
         labels={"area": "Área", "eficiencia": "Eficiência (%)"},
         range_y=[0, 100],
     )
     fig.update_traces(
         texttemplate="%{text}%",
         textposition="outside",
+        textfont=dict(color="#F4F5F7", size=12),
+        cliponaxis=False,
         marker_color=efficiency_df["color"].tolist(),
-        marker_line_color="rgba(245,201,106,0.28)",
+        marker_line_color="rgba(255,255,255,0.18)",
         marker_line_width=1,
-        hovertemplate="<b>%{x}</b><br>Eficiência: %{y}%<extra></extra>",
+        hovertemplate=(
+            "<b>%{x}</b><br>Eficiência: %{y}%"
+            "<br>Faixa: %{customdata[0]}<extra></extra>"
+        ),
     )
     apply_chart_theme(fig, height=390)
     render_orion_chart(fig)
