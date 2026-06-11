@@ -61,6 +61,7 @@ NAV_ITEMS = [
     ("pages/areas.py", "Áreas", "Unidades de governança"),
     ("pages/documentos.py", "Documentos", "Ciclo documental"),
     ("pages/riscos.py", "Riscos", "Matriz operacional"),
+    ("pages/evidencias.py", "Evidências", "Registros comprobatórios"),
 ]
 
 
@@ -199,6 +200,11 @@ COLUMN_LABELS = {
     "impacto": "Impacto",
     "risco": "Score",
     "classificacao": "Classificação",
+    "tipo": "Tipo",
+    "documento": "Documento associado",
+    "risco_associado": "Risco associado",
+    "data": "Data",
+    "origem": "Origem",
     "total_documentos": "Documentos",
     "documentos_pendentes": "Pendentes",
     "documentos_vencidos": "Vencidos",
