@@ -18,8 +18,10 @@ from services.ui import (
     render_empty_state,
     render_executive_summary,
     render_hero,
+    render_insight_card,
     render_kpi_card,
     render_orion_chart,
+    render_priority_card,
     render_risk_posture,
     render_sidebar,
     render_status_message,
@@ -170,6 +172,11 @@ def calculate_cockpit_metrics(
         else pd.Series(dtype=bool)
     )
     documentos_pendentes = int(pending_mask.sum()) if not pending_mask.empty else 0
+    documentos_vigentes = (
+        int(documentos_df["status"].fillna("").astype(str).str.lower().eq("vigente").sum())
+        if not documentos_df.empty and "status" in documentos_df
+        else 0
+    )
 
     riscos_criticos = (
         int(riscos_df["classificacao"].fillna("").astype(str).str.lower().eq("critico").sum())
@@ -211,6 +218,12 @@ def calculate_cockpit_metrics(
         "compliance_description": compliance_description,
         "documentos_vencidos": documentos_vencidos,
         "documentos_pendentes": documentos_pendentes,
+        "documentos_vigentes": documentos_vigentes,
+        "percentual_vigentes": (
+            round((documentos_vigentes / total_documentos) * 100, 1)
+            if total_documentos
+            else 0
+        ),
         "documentos_conformes": documentos_conformes,
         "documentos_fora_do_fluxo": documentos_fora_do_fluxo,
         "riscos_criticos": riscos_criticos,
@@ -222,44 +235,335 @@ def calculate_cockpit_metrics(
     }
 
 
-def generate_executive_summary(metrics: dict[str, object]) -> str:
+def _risk_concentration_by_area(riscos_df: pd.DataFrame) -> pd.DataFrame:
+    if riscos_df.empty or "area" not in riscos_df:
+        return pd.DataFrame(columns=["area", "size"])
+    return (
+        riscos_df.groupby("area", as_index=False)
+        .size()
+        .sort_values("size", ascending=False)
+    )
+
+
+def generate_organizational_assessment(
+    metrics: dict[str, object],
+    riscos_df: pd.DataFrame,
+) -> str:
     conformidade = float(metrics["conformidade"])
     riscos_criticos = int(metrics["riscos_criticos"])
     documentos_vencidos = int(metrics["documentos_vencidos"])
     documentos_pendentes = int(metrics["documentos_pendentes"])
     total_documentos = int(metrics["total_documentos"])
+    total_riscos = int(metrics["total_riscos"])
+    efficiency = metrics["organizational_efficiency"]
 
+    if total_documentos == 0 and total_riscos == 0:
+        return (
+            "A organização ainda não possui base documental ou matriz de riscos suficiente "
+            "para uma leitura executiva consolidada. O foco inicial deve ser estabelecer "
+            "cobertura mínima por área antes de avaliar desempenho e exposição."
+        )
+
+    assessment = []
     if total_documentos == 0:
-        opening = (
-            "Ainda não há documentos suficientes para medir a conformidade executiva. "
-            "A prioridade é estruturar a base documental por área antes de ampliar a leitura estratégica."
+        assessment.append(
+            "A matriz de riscos já permite leitura de exposição, mas a ausência de documentos "
+            "impede avaliar conformidade e eficiência operacional."
+        )
+    elif conformidade >= 90 and riscos_criticos == 0:
+        assessment.append(
+            f"A organização opera em condição controlada, com {conformidade}% de conformidade "
+            "documental e sem riscos críticos ativos."
         )
     elif conformidade >= 90:
-        opening = (
-            "O cenário de governança está estável e saudável, com alto nível de conformidade documental."
+        assessment.append(
+            f"A base documental apresenta desempenho sólido, com {conformidade}% de conformidade, "
+            f"mas {riscos_criticos} risco(s) crítico(s) mantêm pressão sobre a postura corporativa."
         )
     elif conformidade >= 70:
-        opening = (
-            "O cenário exige atenção: a operação mantém controle geral, mas já apresenta desvios relevantes."
+        assessment.append(
+            f"A organização mantém controle intermediário, com {conformidade}% de conformidade, "
+            f"{documentos_vencidos} documento(s) vencido(s) e {documentos_pendentes} pendente(s)."
         )
     else:
-        opening = (
-            "O cenário é crítico para governança e compliance, com baixa conformidade documental consolidada."
+        assessment.append(
+            f"A conformidade de {conformidade}% indica exposição operacional relevante e exige "
+            "regularização prioritária do ciclo documental."
         )
 
-    details = []
-    if riscos_criticos:
-        details.append(
-            f"Existem {riscos_criticos} risco(s) crítico(s) que devem entrar na pauta executiva."
+    efficiency_df = efficiency["data"]
+    if not efficiency_df.empty:
+        assessment.append(
+            f"A eficiência média entre áreas é de {efficiency['average']}%, com menor desempenho "
+            f"em {efficiency['lowest_area']}."
         )
-    if documentos_vencidos or documentos_pendentes:
-        details.append(
-            f"Há {documentos_vencidos} documento(s) vencido(s) e {documentos_pendentes} pendente(s), exigindo plano de ação."
-        )
-    if not details and total_documentos:
-        details.append("Não há sinais imediatos de ruptura no fluxo documental monitorado.")
 
-    return " ".join([opening, *details])
+    risk_concentration = _risk_concentration_by_area(riscos_df)
+    if not risk_concentration.empty:
+        top_risk_area = display_label(str(risk_concentration.iloc[0]["area"]))
+        top_risk_count = int(risk_concentration.iloc[0]["size"])
+        assessment.append(
+            f"{top_risk_area} concentra a maior exposição observada, com {top_risk_count} risco(s) registrado(s)."
+        )
+
+    return " ".join(assessment)
+
+
+def generate_executive_insights(
+    riscos_df: pd.DataFrame,
+    metrics: dict[str, object],
+) -> list[dict[str, str]]:
+    insights = []
+    efficiency_df = metrics["organizational_efficiency"]["data"]
+    risk_concentration = _risk_concentration_by_area(riscos_df)
+
+    if not efficiency_df.empty:
+        lowest = efficiency_df.iloc[-1]
+        insights.append(
+            {
+                "label": "Eficiência",
+                "title": f"{display_label(str(lowest['area']))}: {lowest['eficiencia']}%",
+                "message": "Área com menor eficiência documental e maior necessidade de acompanhamento.",
+            }
+        )
+    else:
+        insights.append(
+            {
+                "label": "Eficiência",
+                "title": "Leitura ainda indisponível",
+                "message": "A eficiência por área será calculada quando houver documentos vinculados.",
+            }
+        )
+
+    if not risk_concentration.empty:
+        top_risk = risk_concentration.iloc[0]
+        share = round((int(top_risk["size"]) / int(metrics["total_riscos"])) * 100, 1)
+        insights.append(
+            {
+                "label": "Concentração de riscos",
+                "title": display_label(str(top_risk["area"])),
+                "message": f"Concentra {int(top_risk['size'])} risco(s), equivalentes a {share}% da matriz atual.",
+            }
+        )
+    else:
+        insights.append(
+            {
+                "label": "Concentração de riscos",
+                "title": "Matriz ainda indisponível",
+                "message": "Nenhuma área possui riscos suficientes para análise de concentração.",
+            }
+        )
+
+    if int(metrics["riscos_criticos"]):
+        insights.append(
+            {
+                "label": "Exposição crítica",
+                "title": f"{metrics['riscos_criticos']} risco(s) crítico(s)",
+                "message": "Eventos críticos ativos exigem acompanhamento na pauta executiva.",
+            }
+        )
+    elif int(metrics["total_riscos"]):
+        insights.append(
+            {
+                "label": "Exposição crítica",
+                "title": "Sem riscos críticos",
+                "message": "A matriz atual não apresenta eventos classificados como críticos.",
+            }
+        )
+
+    if int(metrics["documentos_vencidos"]):
+        insights.append(
+            {
+                "label": "Ciclo documental",
+                "title": f"{metrics['documentos_vencidos']} documento(s) vencido(s)",
+                "message": "Itens fora da validade reduzem a conformidade e demandam regularização.",
+            }
+        )
+    elif int(metrics["total_documentos"]):
+        insights.append(
+            {
+                "label": "Ciclo documental",
+                "title": "Sem documentos vencidos",
+                "message": "A base monitorada não apresenta documentos fora da validade.",
+            }
+        )
+    else:
+        insights.append(
+            {
+                "label": "Ciclo documental",
+                "title": "Base ainda indisponível",
+                "message": "Nenhum documento está disponível para análise do ciclo de controle.",
+            }
+        )
+
+    if not efficiency_df.empty:
+        best = efficiency_df.iloc[0]
+        insights.append(
+            {
+                "label": "Melhor desempenho",
+                "title": f"{display_label(str(best['area']))}: {best['eficiencia']}%",
+                "message": "Área com melhor desempenho documental entre as unidades monitoradas.",
+            }
+        )
+
+    if int(metrics["total_documentos"]):
+        insights.append(
+            {
+                "label": "Conformidade consolidada",
+                "title": f"{metrics['conformidade']}%",
+                "message": f"{metrics['documentos_fora_do_fluxo']} documento(s) estão fora do fluxo esperado.",
+            }
+        )
+
+    return insights[:6]
+
+
+def generate_executive_priorities(metrics: dict[str, object]) -> list[dict[str, str]]:
+    priorities = []
+    total_documentos = int(metrics["total_documentos"])
+    total_riscos = int(metrics["total_riscos"])
+    conformidade = float(metrics["conformidade"])
+
+    if int(metrics["riscos_criticos"]):
+        priorities.append(
+            {
+                "priority": "Alta Prioridade",
+                "title": "Tratar riscos críticos ativos",
+                "message": f"{metrics['riscos_criticos']} evento(s) crítico(s) exigem resposta executiva.",
+            }
+        )
+    if int(metrics["documentos_vencidos"]):
+        priorities.append(
+            {
+                "priority": "Alta Prioridade",
+                "title": "Regularizar documentos vencidos",
+                "message": f"{metrics['documentos_vencidos']} documento(s) ultrapassaram o vencimento.",
+            }
+        )
+    if total_documentos and conformidade < 70:
+        priorities.append(
+            {
+                "priority": "Alta Prioridade",
+                "title": "Recuperar conformidade documental",
+                "message": f"O índice atual de {conformidade}% está abaixo do nível executivo esperado.",
+            }
+        )
+    if int(metrics["documentos_pendentes"]):
+        priorities.append(
+            {
+                "priority": "Média Prioridade",
+                "title": "Resolver pendências documentais",
+                "message": f"{metrics['documentos_pendentes']} documento(s) aguardam conclusão do fluxo.",
+            }
+        )
+    if total_documentos and 70 <= conformidade < 90:
+        priorities.append(
+            {
+                "priority": "Média Prioridade",
+                "title": "Elevar conformidade para faixa saudável",
+                "message": f"O índice de {conformidade}% requer redução dos desvios documentais.",
+            }
+        )
+    if not total_documentos:
+        priorities.append(
+            {
+                "priority": "Média Prioridade",
+                "title": "Estruturar cobertura documental",
+                "message": "Cadastre documentos por área para habilitar conformidade e eficiência.",
+            }
+        )
+    if not total_riscos:
+        priorities.append(
+            {
+                "priority": "Média Prioridade",
+                "title": "Estruturar matriz de riscos",
+                "message": "Registre riscos por área para habilitar a leitura de exposição.",
+            }
+        )
+    if total_documentos and conformidade >= 90:
+        priorities.append(
+            {
+                "priority": "Baixa Prioridade",
+                "title": "Preservar conformidade saudável",
+                "message": f"A base documental opera com {conformidade}% de conformidade.",
+            }
+        )
+    if total_riscos and not int(metrics["riscos_criticos"]):
+        priorities.append(
+            {
+                "priority": "Baixa Prioridade",
+                "title": "Manter exposição crítica controlada",
+                "message": "Não há riscos críticos ativos na matriz atual.",
+            }
+        )
+    if total_documentos and not int(metrics["documentos_vencidos"]):
+        priorities.append(
+            {
+                "priority": "Baixa Prioridade",
+                "title": "Manter ciclo documental em dia",
+                "message": "Nenhum documento monitorado está vencido.",
+            }
+        )
+
+    return priorities[:6]
+
+
+def generate_positive_highlights(
+    riscos_df: pd.DataFrame,
+    metrics: dict[str, object],
+) -> list[dict[str, str]]:
+    highlights = []
+    efficiency_df = metrics["organizational_efficiency"]["data"]
+
+    if not efficiency_df.empty:
+        best = efficiency_df.iloc[0]
+        highlights.append(
+            {
+                "label": "Melhor área monitorada",
+                "title": display_label(str(best["area"])),
+                "message": f"Eficiência documental de {best['eficiencia']}%.",
+            }
+        )
+
+    if int(metrics["total_documentos"]):
+        highlights.append(
+            {
+                "label": "Documentos vigentes",
+                "title": f"{metrics['percentual_vigentes']}%",
+                "message": f"{metrics['documentos_vigentes']} de {metrics['total_documentos']} documentos estão vigentes.",
+            }
+        )
+
+    if int(metrics["total_riscos"]):
+        critical_share = round(
+            (int(metrics["riscos_criticos"]) / int(metrics["total_riscos"])) * 100,
+            1,
+        )
+        if critical_share <= 20:
+            highlights.append(
+                {
+                    "label": "Concentração crítica",
+                    "title": f"{critical_share}% da matriz",
+                    "message": "A participação de riscos críticos permanece concentrada em até um quinto da matriz.",
+                }
+            )
+
+        risk_concentration = _risk_concentration_by_area(riscos_df)
+        if not risk_concentration.empty:
+            top_share = round(
+                (int(risk_concentration.iloc[0]["size"]) / int(metrics["total_riscos"])) * 100,
+                1,
+            )
+            if top_share <= 30:
+                highlights.append(
+                    {
+                        "label": "Distribuição de riscos",
+                        "title": "Exposição distribuída",
+                        "message": f"A área mais exposta concentra apenas {top_share}% dos riscos registrados.",
+                    }
+                )
+
+    return highlights[:4]
 
 
 def _area_names(areas_df: pd.DataFrame) -> set[str]:
@@ -360,10 +664,13 @@ if get_supabase() is None:
     )
 
 metrics = calculate_cockpit_metrics(areas_df, documentos_df, riscos_df)
-executive_summary = generate_executive_summary(metrics)
+organizational_assessment = generate_organizational_assessment(metrics, riscos_df)
+executive_insights = generate_executive_insights(riscos_df, metrics)
+executive_priorities = generate_executive_priorities(metrics)
+positive_highlights = generate_positive_highlights(riscos_df, metrics)
 strategic_alerts = generate_strategic_alerts(areas_df, documentos_df, riscos_df, metrics)
 
-render_executive_summary(executive_summary)
+render_executive_summary(organizational_assessment)
 
 decision_cols = st.columns(3)
 with decision_cols[0]:
@@ -372,6 +679,58 @@ with decision_cols[1]:
     render_risk_posture(metrics)
 with decision_cols[2]:
     render_strategic_alerts(strategic_alerts)
+
+st.markdown('<div class="orion-section-break"></div>', unsafe_allow_html=True)
+st.markdown("## Executive Intelligence")
+st.markdown(
+    '<p class="orion-section">Análises automáticas baseadas nos dados atuais de conformidade, eficiência e exposição a riscos.</p>',
+    unsafe_allow_html=True,
+)
+for offset in range(0, len(executive_insights), 3):
+    insight_cols = st.columns(3)
+    for column, insight in zip(insight_cols, executive_insights[offset : offset + 3]):
+        with column:
+            render_insight_card(insight["label"], insight["title"], insight["message"])
+
+st.markdown("### Executive Priorities")
+st.markdown(
+    '<p class="orion-section">Ordem sugerida de atenção executiva conforme criticidade e condição operacional.</p>',
+    unsafe_allow_html=True,
+)
+for offset in range(0, len(executive_priorities), 3):
+    priority_cols = st.columns(3)
+    for column, priority in zip(priority_cols, executive_priorities[offset : offset + 3]):
+        with column:
+            render_priority_card(
+                priority["priority"],
+                priority["title"],
+                priority["message"],
+            )
+
+st.markdown("### Destaques positivos")
+st.markdown(
+    '<p class="orion-section">Sinais favoráveis que ajudam a preservar práticas e controles com bom desempenho.</p>',
+    unsafe_allow_html=True,
+)
+if positive_highlights:
+    for offset in range(0, len(positive_highlights), 3):
+        highlight_cols = st.columns(3)
+        for column, highlight in zip(
+            highlight_cols,
+            positive_highlights[offset : offset + 3],
+        ):
+            with column:
+                render_insight_card(
+                    highlight["label"],
+                    highlight["title"],
+                    highlight["message"],
+                )
+else:
+    render_empty_state(
+        "Destaques positivos ainda indisponíveis",
+        "A base atual ainda não possui sinais suficientes para destacar desempenho favorável.",
+        "Amplie a cobertura documental e a matriz de riscos para liberar esta leitura.",
+    )
 
 st.markdown('<div class="orion-section-break"></div>', unsafe_allow_html=True)
 st.markdown("### Indicadores Executivos")

@@ -31,6 +31,7 @@ __all__ = [
     "render_kpi_card",
     "render_module_card",
     "render_orion_chart",
+    "render_priority_card",
     "render_risk_posture",
     "render_sidebar",
     "render_status_message",
@@ -73,6 +74,7 @@ DISPLAY_LABELS = {
     "Relatorio": "Relatório",
     "Juridico": "Jurídico",
     "Operacoes": "Operações",
+    "Tecnologia da Informacao": "Tecnologia da Informação",
 }
 
 
@@ -173,6 +175,8 @@ DISPLAY_REPLACEMENTS = (
     ("juridico", "jurídico"),
     ("Operacoes", "Operações"),
     ("operacoes", "operações"),
+    ("Informacao", "Informação"),
+    ("informacao", "informação"),
     ("Medio", "Médio"),
     ("medio", "médio"),
     ("Critico", "Crítico"),
@@ -358,6 +362,15 @@ def render_alert_card(label: str, value: str, note: str) -> None:
     _render_orion_card(label, value, note, "alert")
 
 
+def render_priority_card(priority: str, title: str, note: str) -> None:
+    priority_variant = {
+        "Alta Prioridade": "priority-high",
+        "Média Prioridade": "priority-medium",
+        "Baixa Prioridade": "priority-low",
+    }.get(priority, "priority-medium")
+    _render_orion_card(priority, title, note, priority_variant)
+
+
 def render_compliance_score(metrics: dict[str, object]) -> None:
     _render_html(
         f"""
@@ -398,8 +411,8 @@ def render_executive_summary(summary: str) -> None:
     _render_html(
         f"""
         <div class="orion-cockpit-panel orion-cockpit-panel-primary">
-            <div class="orion-cockpit-kicker">Resumo Executivo</div>
-            <div class="orion-cockpit-title">Leitura estratégica da organização</div>
+            <div class="orion-cockpit-kicker">Avaliação Organizacional</div>
+            <div class="orion-cockpit-title">Leitura dinâmica da organização</div>
             <p class="orion-cockpit-text">{escape(summary)}</p>
         </div>
         """
@@ -727,6 +740,43 @@ def apply_theme() -> None:
             .orion-card-alert .orion-card-note {
                 font-size: 0.84rem;
                 margin-top: 8px;
+            }
+
+            .orion-card-priority-high,
+            .orion-card-priority-medium,
+            .orion-card-priority-low {
+                min-height: 158px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .orion-card-priority-high {
+                border-color: rgba(211, 93, 93, 0.42);
+                background:
+                    linear-gradient(145deg, rgba(211, 93, 93, 0.13), rgba(214, 217, 224, 0.012)),
+                    var(--orion-panel);
+            }
+
+            .orion-card-priority-high .orion-card-label {
+                color: #E48B8B;
+            }
+
+            .orion-card-priority-medium {
+                border-color: rgba(231, 188, 84, 0.34);
+                background:
+                    linear-gradient(145deg, rgba(231, 188, 84, 0.10), rgba(214, 217, 224, 0.012)),
+                    var(--orion-panel);
+            }
+
+            .orion-card-priority-low {
+                border-color: rgba(67, 181, 129, 0.30);
+                background:
+                    linear-gradient(145deg, rgba(67, 181, 129, 0.09), rgba(214, 217, 224, 0.012)),
+                    var(--orion-panel);
+            }
+
+            .orion-card-priority-low .orion-card-label {
+                color: #74C99B;
             }
 
             .orion-cockpit-panel {
