@@ -21,6 +21,7 @@ __all__ = [
     "is_non_corporate_area_name",
     "orion_loading",
     "render_alert_card",
+    "render_area_operational_card",
     "render_card",
     "render_compliance_score",
     "render_data_table",
@@ -198,6 +199,12 @@ COLUMN_LABELS = {
     "impacto": "Impacto",
     "risco": "Score",
     "classificacao": "Classificação",
+    "total_documentos": "Documentos",
+    "documentos_pendentes": "Pendentes",
+    "documentos_vencidos": "Vencidos",
+    "total_riscos": "Riscos",
+    "riscos_criticos": "Riscos críticos",
+    "eficiencia": "Eficiência (%)",
 }
 
 
@@ -360,6 +367,40 @@ def render_module_card(label: str, value: str, note: str, compact: bool = False)
 
 def render_alert_card(label: str, value: str, note: str) -> None:
     _render_orion_card(label, value, note, "alert")
+
+
+def render_area_operational_card(area: dict[str, object]) -> None:
+    efficiency = float(area["eficiencia"])
+    efficiency_variant = (
+        "healthy"
+        if efficiency >= 90
+        else "attention"
+        if efficiency >= 70
+        else "elevated"
+        if efficiency >= 50
+        else "critical"
+    )
+    _render_html(
+        f"""
+        <div class="orion-area-card">
+            <div class="orion-area-card-header">
+                <div>
+                    <div class="orion-card-label">Área monitorada</div>
+                    <div class="orion-area-card-title">{escape(str(area["nome"]))}</div>
+                </div>
+                <div class="orion-area-efficiency orion-area-efficiency-{efficiency_variant}">{escape(str(area["eficiencia"]))}%</div>
+            </div>
+            <div class="orion-area-card-grid">
+                <div><span>Documentos</span><strong>{escape(str(area["total_documentos"]))}</strong></div>
+                <div><span>Pendentes</span><strong>{escape(str(area["documentos_pendentes"]))}</strong></div>
+                <div><span>Vencidos</span><strong>{escape(str(area["documentos_vencidos"]))}</strong></div>
+                <div><span>Riscos</span><strong>{escape(str(area["total_riscos"]))}</strong></div>
+                <div><span>Riscos críticos</span><strong>{escape(str(area["riscos_criticos"]))}</strong></div>
+                <div><span>Eficiência</span><strong>{escape(str(area["eficiencia"]))}%</strong></div>
+            </div>
+        </div>
+        """
+    )
 
 
 def render_priority_card(priority: str, title: str, note: str) -> None:
@@ -740,6 +781,97 @@ def apply_theme() -> None:
             .orion-card-alert .orion-card-note {
                 font-size: 0.84rem;
                 margin-top: 8px;
+            }
+
+            .orion-area-card {
+                border: 1px solid rgba(212, 166, 74, 0.16);
+                border-radius: 8px;
+                background:
+                    linear-gradient(145deg, rgba(212, 166, 74, 0.08), rgba(214, 217, 224, 0.015)),
+                    var(--orion-panel);
+                box-shadow: 0 20px 44px rgba(0, 0, 0, 0.30);
+                min-height: 246px;
+                padding: 19px;
+                transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+            }
+
+            .orion-area-card:hover {
+                border-color: rgba(245, 201, 106, 0.32);
+                box-shadow: 0 26px 58px rgba(0, 0, 0, 0.42);
+                transform: translateY(-2px);
+            }
+
+            .orion-area-card-header {
+                align-items: flex-start;
+                display: flex;
+                gap: 12px;
+                justify-content: space-between;
+                margin-bottom: 17px;
+            }
+
+            .orion-area-card-title {
+                color: var(--orion-silver);
+                font-size: 1.08rem;
+                font-weight: 800;
+                line-height: 1.25;
+            }
+
+            .orion-area-efficiency {
+                border: 1px solid rgba(67, 181, 129, 0.28);
+                border-radius: 999px;
+                background: rgba(67, 181, 129, 0.10);
+                color: #74C99B;
+                flex: 0 0 auto;
+                font-size: 0.82rem;
+                font-weight: 820;
+                padding: 6px 9px;
+            }
+
+            .orion-area-efficiency-attention {
+                border-color: rgba(231, 188, 84, 0.34);
+                background: rgba(231, 188, 84, 0.10);
+                color: #E7BC54;
+            }
+
+            .orion-area-efficiency-elevated {
+                border-color: rgba(224, 138, 62, 0.36);
+                background: rgba(224, 138, 62, 0.11);
+                color: #E08A3E;
+            }
+
+            .orion-area-efficiency-critical {
+                border-color: rgba(211, 93, 93, 0.38);
+                background: rgba(211, 93, 93, 0.12);
+                color: #E48B8B;
+            }
+
+            .orion-area-card-grid {
+                display: grid;
+                gap: 9px;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .orion-area-card-grid > div {
+                border: 1px solid rgba(212, 166, 74, 0.10);
+                border-radius: 7px;
+                background: rgba(214, 217, 224, 0.025);
+                padding: 9px 10px;
+            }
+
+            .orion-area-card-grid span {
+                color: var(--orion-muted);
+                display: block;
+                font-size: 0.70rem;
+                font-weight: 720;
+                letter-spacing: 0.035em;
+                margin-bottom: 4px;
+                text-transform: uppercase;
+            }
+
+            .orion-area-card-grid strong {
+                color: var(--orion-silver);
+                font-size: 1.02rem;
+                font-weight: 800;
             }
 
             .orion-card-priority-high,

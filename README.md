@@ -80,6 +80,7 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 - Risk scoring by probability and impact
 - Risk classification: Low, Medium, High and Critical
 - Area-based tracking
+- Areas Intelligence with operational metrics, rankings and automated insights
 - Document lifecycle management
 - Operational efficiency by area
 - Executive semantic chart colors for document health, risk concentration and performance bands
@@ -113,7 +114,10 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 ### Areas
 
 - Area registration
-- Area listing
+- Operational cards with documents, pending items, expired items, risks, critical risks and efficiency
+- Operational ranking and automated Area Intelligence
+- Positive highlights by area
+- Operational area listing without technical UUID columns
 - Foundation for area ownership and future access rules
 
 ### Documents
@@ -312,6 +316,7 @@ The optional `auth_user_id` column in `usuarios` can be connected to `auth.users
 - [x] Professional enterprise-style presentation
 - [x] Executive Cockpit
 - [x] Executive Intelligence Engine
+- [x] Areas Intelligence
 - [x] Area management
 - [x] Document management
 - [x] Risk management
