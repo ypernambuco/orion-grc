@@ -13,6 +13,9 @@ from supabase import create_client
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 SEED_PATH = ROOT_DIR / "database" / "seed_demo.sql"
+PRODUCTION_MIGRATION_PATH = (
+    ROOT_DIR / "database" / "migrations" / "20260611_sync_production_schema.sql"
+)
 
 
 def sanitize_error(message: str, secret: str | None) -> str:
@@ -216,6 +219,42 @@ def count_rows(supabase: Any, table_name: str) -> int:
     return len(data)
 
 
+def validate_demo_schema(supabase: Any) -> None:
+    probes = {
+        "riscos": [
+            "id",
+            "plano_acao",
+            "responsavel_plano",
+            "prazo_plano",
+            "status_plano",
+        ],
+        "evidencias": [
+            "id",
+            "documento_id",
+            "risco_id",
+            "nome",
+            "descricao",
+            "url_arquivo",
+            "created_by",
+            "created_at",
+        ],
+    }
+    failures = []
+    for table_name, columns in probes.items():
+        try:
+            supabase.table(table_name).select(",".join(columns)).limit(0).execute()
+        except Exception as exc:
+            failures.append(f"{table_name}: {exc}")
+
+    if failures:
+        migration = PRODUCTION_MIGRATION_PATH.relative_to(ROOT_DIR)
+        raise RuntimeError(
+            "Schema remoto incompatível com a massa demo atual. "
+            f"Aplique {migration} antes da carga. "
+            + " | ".join(failures)
+        )
+
+
 def load_demo_data() -> None:
     load_dotenv(ROOT_DIR / ".env")
 
@@ -229,6 +268,7 @@ def load_demo_data() -> None:
     seed = parse_seed(sql)
     supabase = create_client(supabase_url, service_role_key)
 
+    validate_demo_schema(supabase)
     normalize_legacy_area_names(supabase)
 
     supabase.table("areas").upsert(seed["areas"], on_conflict="nome").execute()

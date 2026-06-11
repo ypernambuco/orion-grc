@@ -264,6 +264,20 @@ Re-run this idempotent schema after updates to enable new foundations such as
 Risk Treatment fields. The application remains compatible with an older schema,
 but action plan persistence is enabled only after the current schema is applied.
 
+For production synchronization, run the additive migration and review the audit
+report:
+
+```text
+database/migrations/20260611_sync_production_schema.sql
+docs/production_schema_sync.md
+```
+
+The remote structure can be checked without changing data:
+
+```bash
+python scripts/audit_remote_schema.py
+```
+
 6. Optionally load the corporate demo seed:
 
 Add `SUPABASE_SERVICE_ROLE_KEY` to your local `.env`, then run:
