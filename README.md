@@ -79,6 +79,7 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 - Expired and pending document monitoring
 - Risk scoring by probability and impact
 - Risk classification: Low, Medium, High and Critical
+- Risk Intelligence with exposure metrics, priorities, distribution and automated insights
 - Area-based tracking
 - Areas Intelligence with operational metrics, rankings and automated insights
 - Document lifecycle management
@@ -137,7 +138,11 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 - Risk registration
 - Automatic score calculation
 - Impact and probability sliders
-- Operational prioritization by classification
+- Executive indicators by classification and average exposure
+- Automated Risk Intelligence by area, concentration and matrix distribution
+- Risk priorities and positive control highlights
+- Semantic Risk Distribution with Low, Medium, High and Critical levels
+- Operational risk listing without technical UUID columns
 
 ---
 
@@ -327,6 +332,7 @@ The optional `auth_user_id` column in `usuarios` can be connected to `auth.users
 - [x] Document management
 - [x] Documents Intelligence
 - [x] Risk management
+- [x] Risk Intelligence
 - [x] Manual corporate demo seed
 - [x] Production demo on Streamlit Cloud
 - [ ] Authentication
