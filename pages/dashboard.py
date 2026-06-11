@@ -2,6 +2,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from services.access_control import require_permission
 from services.supabase_client import get_supabase
 from services.ui import (
     apply_chart_theme,
@@ -637,6 +638,7 @@ def generate_strategic_alerts(
 
 apply_theme()
 render_sidebar("Dashboard")
+require_permission("Dashboard")
 render_hero(
     "Vaekor Labs | ORION GRC",
     "Cockpit Executivo",

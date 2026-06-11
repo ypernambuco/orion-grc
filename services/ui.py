@@ -5,6 +5,13 @@ from typing import Iterator, Optional
 
 import streamlit as st
 
+from services.access_control import (
+    PROFILE_DESCRIPTIONS,
+    get_active_profile,
+    get_profiles,
+    has_permission,
+)
+
 
 __all__ = [
     "apply_chart_theme",
@@ -1522,9 +1529,21 @@ def render_sidebar(active: str) -> None:
         )
         st.caption("Governança, riscos e eficiência operacional para decisões executivas.")
         st.markdown('<div class="orion-divider"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="orion-nav-section-label">Perfil ativo</div>', unsafe_allow_html=True)
+        active_profile = st.selectbox(
+            "Perfil Ativo",
+            get_profiles(),
+            index=get_profiles().index(get_active_profile()),
+            key="orion_active_profile",
+            label_visibility="collapsed",
+        )
+        st.caption(PROFILE_DESCRIPTIONS[active_profile])
+        st.markdown('<div class="orion-divider"></div>', unsafe_allow_html=True)
         st.markdown('<div class="orion-nav-section-label">Workspace</div>', unsafe_allow_html=True)
 
         for path, label, caption in NAV_ITEMS:
+            if not has_permission(label, active_profile):
+                continue
             st.page_link(path, label=label)
             caption_class = "orion-nav-caption orion-nav-caption-active" if label == active else "orion-nav-caption"
             st.markdown(

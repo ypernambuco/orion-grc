@@ -19,7 +19,8 @@ Corporate product demo deployed online for portfolio and functional validation.
 Current scope:
 
 - Public demo without authentication
-- No role-based access control yet
+- Demo access control foundation with temporary profile selector
+- No authenticated authorization or Supabase RLS integration yet
 - No AI features yet
 - Supabase/PostgreSQL persistence
 - Corporate demo seed available through a local administrative loader
@@ -81,6 +82,7 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 - Risk classification: Low, Medium, High and Critical
 - Risk Intelligence with exposure metrics, priorities, distribution and automated insights
 - Evidence Management Foundation with linked records, uploads and coverage indicators
+- Access Control Foundation with profile-based navigation and direct URL protection
 - Area-based tracking
 - Areas Intelligence with operational metrics, rankings and automated insights
 - Document lifecycle management
@@ -292,13 +294,32 @@ Never commit `.env`, credentials or Supabase secrets.
 - Supabase credentials must be stored locally or in `st.secrets`
 - The app rejects `service_role` keys
 - Authentication is intentionally not implemented in this version
-- Role-based access control is intentionally not implemented in this version
+- The active demo profile is stored only in the Streamlit session
+- Demo permissions improve product validation but do not replace authenticated authorization or RLS
+
+---
+
+## Demo Access Control Foundation
+
+The sidebar includes a temporary profile selector for product validation. The Home landing page remains visible to every demo profile, while operational modules follow this permission matrix:
+
+| Profile | Dashboard | Areas | Documents | Risks | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| Admin | Yes | Yes | Yes | Yes | Yes |
+| Compliance | Yes | Yes | Yes | No | Yes |
+| Gestor | Yes | Yes | Yes | Yes | No |
+| Diretoria | Yes | No | No | No | No |
+| Auditoria | Yes | No | No | No | Yes |
+
+Unauthorized modules are hidden from the sidebar. Direct URL access to a blocked module displays `Acesso não autorizado`.
+
+This foundation does not create login, change Supabase Auth or modify RLS.
 
 ---
 
 ## Future Access Architecture
 
-This version does not implement login, but the database already prepares the foundation for future access control by profile and area.
+This version does not implement login, but the database already prepares the foundation for future authenticated access control by profile and area.
 
 Planned profiles:
 
@@ -343,10 +364,11 @@ The optional `auth_user_id` column in `usuarios` can be connected to `auth.users
 - [x] Risk management
 - [x] Risk Intelligence
 - [x] Evidence Management Foundation
+- [x] Access Control Foundation
 - [x] Manual corporate demo seed
 - [x] Production demo on Streamlit Cloud
 - [ ] Authentication
-- [ ] Role-based access control
+- [ ] Authenticated role-based access control
 - [ ] Multi-company workspace
 - [ ] Evidence upload
 - [ ] Advanced audit trail

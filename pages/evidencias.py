@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from services.access_control import require_permission
 from services.supabase_client import get_supabase
 from services.ui import (
     apply_theme,
@@ -250,6 +251,7 @@ def calculate_evidence_metrics(evidencias_df: pd.DataFrame) -> dict[str, object]
 
 apply_theme()
 render_sidebar("Evidências")
+require_permission("Evidências")
 render_hero(
     "Rastreabilidade e auditoria",
     "Gestão de evidências",

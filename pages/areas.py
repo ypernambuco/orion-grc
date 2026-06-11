@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from services.access_control import require_permission
 from services.supabase_client import get_supabase
 from services.ui import (
     apply_theme,
@@ -308,6 +309,7 @@ def generate_area_positive_highlights(
 
 apply_theme()
 render_sidebar("Áreas")
+require_permission("Áreas")
 render_hero(
     "Unidades de governança",
     "Áreas corporativas",

@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from services.access_control import require_permission
 from services.supabase_client import get_supabase
 from services.ui import (
     apply_theme,
@@ -360,6 +361,7 @@ def generate_risk_positive_highlights(
 
 apply_theme()
 render_sidebar("Riscos")
+require_permission("Riscos")
 render_hero(
     "Registro de riscos",
     "Matriz de riscos",
