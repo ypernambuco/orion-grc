@@ -40,8 +40,8 @@ def load_areas() -> list[dict]:
         return []
     try:
         data = supabase.table("areas").select("id, nome").order("nome").execute().data
-    except Exception as exc:
-        st.error(f"Não foi possível carregar as áreas: {exc}")
+    except Exception:
+        st.error("Não foi possível carregar as áreas no momento.")
         return []
     return [
         area
@@ -62,8 +62,8 @@ def load_documentos() -> pd.DataFrame:
             .execute()
             .data
         )
-    except Exception as exc:
-        st.error(f"Não foi possível carregar os documentos: {exc}")
+    except Exception:
+        st.error("Não foi possível carregar os documentos no momento.")
         return pd.DataFrame()
     df = pd.DataFrame(data)
     if not df.empty and "areas" in df:
@@ -314,7 +314,7 @@ areas = load_areas()
 area_options = {area["nome"]: area["id"] for area in areas}
 
 if supabase is None:
-    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets.")
+    st.warning("Recurso em configuração administrativa.")
 
 st.markdown("### Novo documento")
 st.markdown(
@@ -337,7 +337,7 @@ with st.form("form_documento", clear_on_submit=True):
     submitted = st.form_submit_button("Cadastrar documento")
     if submitted:
         if supabase is None:
-            st.error("Supabase não configurado.")
+            st.error("Recurso em configuração administrativa.")
         elif not area_options:
             st.error("Cadastre uma área antes de registrar documentos.")
         elif not nome.strip() or not responsavel.strip():
@@ -356,8 +356,8 @@ with st.form("form_documento", clear_on_submit=True):
                 ).execute()
                 st.success("Documento cadastrado com sucesso.")
                 st.rerun()
-            except Exception as exc:
-                st.error(f"Não foi possível cadastrar o documento: {exc}")
+            except Exception:
+                st.error("Não foi possível cadastrar o documento no momento.")
 
 with st.spinner("Carregando inteligência documental..."):
     documentos_df = load_documentos()

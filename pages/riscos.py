@@ -16,6 +16,7 @@ from services.ui import (
     render_kpi_card,
     render_priority_card,
     render_sidebar,
+    render_status_message,
 )
 
 
@@ -46,8 +47,8 @@ def load_areas() -> list[dict]:
         return []
     try:
         data = supabase.table("areas").select("id, nome").order("nome").execute().data
-    except Exception as exc:
-        st.error(f"Não foi possível carregar as áreas: {exc}")
+    except Exception:
+        st.error("Não foi possível carregar as áreas no momento.")
         return []
     return [
         area
@@ -72,7 +73,7 @@ def load_riscos() -> tuple[pd.DataFrame, bool]:
             .data
         )
         treatment_available = True
-    except Exception as treatment_exc:
+    except Exception:
         try:
             data = (
                 supabase.table("riscos")
@@ -83,7 +84,7 @@ def load_riscos() -> tuple[pd.DataFrame, bool]:
             )
             treatment_available = False
         except Exception:
-            st.error(f"Não foi possível carregar os riscos: {treatment_exc}")
+            st.error("Não foi possível carregar os riscos no momento.")
             return pd.DataFrame(), False
     df = pd.DataFrame(data)
     for column in ACTION_PLAN_COLUMNS:
@@ -569,15 +570,16 @@ areas = load_areas()
 area_options = {area["nome"]: area["id"] for area in areas}
 
 if supabase is None:
-    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets.")
+    st.warning("Recurso em configuração administrativa.")
 
 with st.spinner("Carregando inteligência de riscos..."):
     riscos_df, treatment_available = load_riscos()
 if supabase is not None and not treatment_available:
-    st.warning(
-        "A fundação de tratamento está pronta, mas as colunas de plano de ação ainda "
-        "não existem no Supabase atual. Aplique database/schema.sql para habilitar "
-        "cadastro e persistência dos planos."
+    render_status_message(
+        "Planos de ação disponíveis para acompanhamento operacional. "
+        "Novos registros de tratamento estão em configuração administrativa.",
+        title="Acompanhamento de planos",
+        kind="info",
     )
 
 st.markdown("### Novo risco")
@@ -605,7 +607,7 @@ with st.form("form_risco", clear_on_submit=True):
         "Adicionar plano de ação",
         disabled=not treatment_available,
         help=(
-            "Aplique database/schema.sql para habilitar planos de ação."
+            "Recurso em configuração administrativa."
             if not treatment_available
             else "Inclua o tratamento inicial junto ao cadastro do risco."
         ),
@@ -629,7 +631,7 @@ with st.form("form_risco", clear_on_submit=True):
     submitted = st.form_submit_button("Cadastrar risco")
     if submitted:
         if supabase is None:
-            st.error("Supabase não configurado.")
+            st.error("Recurso em configuração administrativa.")
         elif not area_options:
             st.error("Cadastre uma área antes de registrar riscos.")
         elif not descricao.strip():
@@ -658,8 +660,8 @@ with st.form("form_risco", clear_on_submit=True):
                 supabase.table("riscos").insert(payload).execute()
                 st.success("Risco cadastrado com sucesso.")
                 st.rerun()
-            except Exception as exc:
-                st.error(f"Não foi possível cadastrar o risco: {exc}")
+            except Exception:
+                st.error("Não foi possível cadastrar o risco no momento.")
 
 risk_metrics = calculate_risk_metrics(riscos_df)
 risk_insights = generate_risk_insights(risk_metrics)

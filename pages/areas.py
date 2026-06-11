@@ -26,8 +26,8 @@ def load_areas() -> pd.DataFrame:
         return pd.DataFrame()
     try:
         data = supabase.table("areas").select("*").order("nome").execute().data
-    except Exception as exc:
-        st.error(f"Não foi possível carregar as áreas: {exc}")
+    except Exception:
+        st.error("Não foi possível carregar as áreas no momento.")
         return pd.DataFrame()
     return filter_non_corporate_area_rows(pd.DataFrame(data), "nome")
 
@@ -49,8 +49,8 @@ def load_area_operational_data() -> tuple[pd.DataFrame, pd.DataFrame]:
             .execute()
             .data
         )
-    except Exception as exc:
-        st.error(f"Não foi possível carregar os indicadores por área: {exc}")
+    except Exception:
+        st.error("Não foi possível carregar os indicadores por área no momento.")
         return pd.DataFrame(), pd.DataFrame()
     return pd.DataFrame(documentos), pd.DataFrame(riscos)
 
@@ -318,7 +318,7 @@ render_hero(
 
 supabase = get_supabase()
 if supabase is None:
-    st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets.")
+    st.warning("Recurso em configuração administrativa.")
 
 form_col, insight_col = st.columns([1.1, 0.9])
 with form_col:
@@ -333,7 +333,7 @@ with form_col:
 
         if submitted:
             if supabase is None:
-                st.error("Supabase não configurado.")
+                st.error("Recurso em configuração administrativa.")
             elif not nome.strip():
                 st.error("Informe o nome da área.")
             else:
@@ -341,8 +341,8 @@ with form_col:
                     supabase.table("areas").insert({"nome": nome.strip()}).execute()
                     st.success("Área cadastrada com sucesso.")
                     st.rerun()
-                except Exception as exc:
-                    st.error(f"Não foi possível cadastrar a área: {exc}")
+                except Exception:
+                    st.error("Não foi possível cadastrar a área no momento.")
 
 with insight_col:
     st.markdown("### Gestão por área")

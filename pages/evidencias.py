@@ -26,6 +26,7 @@ st.set_page_config(page_title="ORION GRC | Evidências", layout="wide")
 
 EVIDENCE_BUCKET = "evidencias"
 SESSION_EVIDENCES_KEY = "orion_session_evidences"
+SESSION_FILES_KEY = "orion_session_evidence_files"
 SUPPORTED_UPLOAD_TYPES = ["pdf", "docx", "xlsx", "png", "jpg", "jpeg"]
 EVIDENCE_TYPES = ["PDF", "DOCX", "XLSX", "PNG", "JPG", "Registro"]
 METADATA_VERSION = 1
@@ -50,8 +51,8 @@ def load_reference_data() -> tuple[list[dict], list[dict]]:
             .execute()
             .data
         )
-    except Exception as exc:
-        st.error(f"Não foi possível carregar documentos e riscos relacionados: {exc}")
+    except Exception:
+        st.error("Não foi possível carregar documentos e riscos relacionados.")
         return [], []
     documentos = [
         item
@@ -113,26 +114,13 @@ def _session_evidences() -> list[dict]:
     return st.session_state[SESSION_EVIDENCES_KEY]
 
 
-def storage_bucket_available(supabase) -> bool:
-    if supabase is None:
-        return False
-    try:
-        return any(
-            getattr(bucket, "name", None) == EVIDENCE_BUCKET
-            or (isinstance(bucket, dict) and bucket.get("name") == EVIDENCE_BUCKET)
-            for bucket in supabase.storage.list_buckets()
-        )
-    except Exception:
-        return False
-
-
 def upload_evidence_file(supabase, uploaded_file) -> tuple[str | None, bytes | None]:
     if uploaded_file is None:
         return None, None
 
     file_bytes = uploaded_file.getvalue()
-    if not storage_bucket_available(supabase):
-        return f"session://{uploaded_file.name}", file_bytes
+    if supabase is None:
+        return None, file_bytes
 
     safe_name = Path(uploaded_file.name).name.replace(" ", "_")
     storage_path = f"{uuid.uuid4()}/{safe_name}"
@@ -142,7 +130,7 @@ def upload_evidence_file(supabase, uploaded_file) -> tuple[str | None, bytes | N
         supabase.storage.from_(EVIDENCE_BUCKET).upload(storage_path, file_bytes, options)
         return storage_path, file_bytes
     except Exception:
-        return f"session://{uploaded_file.name}", file_bytes
+        return None, file_bytes
 
 
 def stage_evidence(payload: dict, file_bytes: bytes | None) -> None:
@@ -153,33 +141,55 @@ def stage_evidence(payload: dict, file_bytes: bytes | None) -> None:
             **payload,
             "created_at": pd.Timestamp.now().isoformat(),
             "arquivo_bytes": file_bytes,
-            "arquivo_nome": (
-                str(payload.get("url_arquivo", "")).removeprefix("session://")
-                if payload.get("url_arquivo")
-                else ""
-            ),
+            "arquivo_nome": str(payload.get("_arquivo_nome") or ""),
             **metadata,
-            "origem": "Sessão atual",
+            "origem": "Registro temporário",
         }
     )
 
 
-def register_evidence(payload: dict, file_bytes: bytes | None) -> bool:
+def stage_file(file_name: str, file_bytes: bytes) -> None:
+    if SESSION_FILES_KEY not in st.session_state:
+        st.session_state[SESSION_FILES_KEY] = []
+    st.session_state[SESSION_FILES_KEY].append(
+        {
+            "id": f"file-{uuid.uuid4()}",
+            "arquivo_nome": file_name,
+            "arquivo_bytes": file_bytes,
+        }
+    )
+
+
+def register_evidence(payload: dict, file_bytes: bytes | None, file_name: str) -> bool:
     supabase = get_supabase()
-    if supabase is not None and not str(payload.get("url_arquivo", "")).startswith(
-        "session://"
-    ):
+    if supabase is not None:
         try:
             supabase.table("evidencias").insert(payload).execute()
-            st.success("Evidência cadastrada com sucesso.")
+            if file_bytes and not payload.get("url_arquivo"):
+                stage_file(file_name, file_bytes)
+                st.success(
+                    "Evidência cadastrada. O arquivo permanecerá disponível "
+                    "temporariamente."
+                )
+            else:
+                st.success("Evidência cadastrada com sucesso.")
             return True
         except Exception:
-            pass
+            if payload.get("url_arquivo"):
+                try:
+                    supabase.storage.from_(EVIDENCE_BUCKET).remove(
+                        [payload["url_arquivo"]]
+                    )
+                except Exception:
+                    pass
 
-    stage_evidence(payload, file_bytes)
+    stage_evidence(
+        {**payload, "url_arquivo": None, "_arquivo_nome": file_name},
+        file_bytes,
+    )
     st.warning(
-        "Evidência adicionada à sessão atual. A persistência permanente depende "
-        "de permissão de inserção e do bucket de evidências no Supabase."
+        "Recurso em configuração administrativa. A evidência permanecerá "
+        "disponível temporariamente."
     )
     return True
 
@@ -203,8 +213,8 @@ def load_evidences(
                 .execute()
                 .data
             )
-        except Exception as exc:
-            st.error(f"Não foi possível carregar as evidências: {exc}")
+        except Exception:
+            st.error("Não foi possível carregar as evidências no momento.")
 
     normalized = []
     for record in [*records, *_session_evidences()]:
@@ -227,7 +237,7 @@ def load_evidences(
                 "observacoes": record.get("observacoes") or metadata["observacoes"],
                 "documento": document_names.get(record.get("documento_id"), "Não vinculado"),
                 "risco_associado": risk_names.get(record.get("risco_id"), "Não vinculado"),
-                "origem": record.get("origem", "Supabase"),
+                "origem": record.get("origem", "Base corporativa"),
             }
         )
     return pd.DataFrame(normalized)
@@ -271,15 +281,11 @@ risk_options = {
         for item in riscos
     },
 }
-permanent_upload_available = storage_bucket_available(supabase)
-
 if supabase is None:
-    st.warning("Configure SUPABASE_URL e SUPABASE_KEY para ler evidências persistidas.")
-elif not permanent_upload_available:
     render_status_message(
-        "O bucket 'evidencias' não existe no ambiente atual. Cadastros e uploads novos "
-        "ficarão disponíveis durante a sessão, sem alterar Supabase ou RLS.",
-        title="Fundação em modo de sessão",
+        "Gestão de evidências disponível para suporte documental e auditoria. "
+        "Alguns recursos estão em configuração administrativa.",
+        title="Gestão de evidências",
         kind="warning",
     )
 
@@ -326,10 +332,11 @@ with st.form("form_evidencia", clear_on_submit=True):
                     ),
                     "url_arquivo": url_arquivo,
                 }
-                if register_evidence(payload, file_bytes):
+                file_name = uploaded_file.name if uploaded_file is not None else ""
+                if register_evidence(payload, file_bytes, file_name):
                     st.rerun()
-            except Exception as exc:
-                st.error(f"Não foi possível processar a evidência: {exc}")
+            except Exception:
+                st.error("Não foi possível processar a evidência no momento.")
 
 evidencias_df = load_evidences(documentos, riscos)
 evidence_metrics = calculate_evidence_metrics(evidencias_df)
@@ -403,11 +410,11 @@ session_files = [
     item
     for item in _session_evidences()
     if item.get("arquivo_bytes") and item.get("arquivo_nome")
-]
+] + st.session_state.get(SESSION_FILES_KEY, [])
 if session_files:
-    st.markdown("### Arquivos enviados nesta sessão")
+    st.markdown("### Arquivos temporários")
     st.markdown(
-        '<p class="orion-section">Downloads temporários disponíveis enquanto esta sessão permanecer ativa.</p>',
+        '<p class="orion-section">Downloads temporários disponíveis para continuidade operacional.</p>',
         unsafe_allow_html=True,
     )
     for item in session_files:

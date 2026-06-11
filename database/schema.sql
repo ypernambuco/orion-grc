@@ -62,7 +62,14 @@ create table if not exists riscos (
     responsavel_plano text,
     prazo_plano date,
     status_plano text check (
-        status_plano in ('Nao iniciado', 'Em andamento', 'Concluido', 'Atrasado')
+        status_plano in (
+            'Não iniciado',
+            'Nao iniciado',
+            'Em andamento',
+            'Concluído',
+            'Concluido',
+            'Atrasado'
+        )
     ),
     escopo_acesso text not null default 'geral'
         check (escopo_acesso in ('geral', 'area', 'juridico', 'restrito')),
@@ -117,7 +124,16 @@ alter table riscos
 
 alter table riscos
     add column if not exists status_plano text
-        check (status_plano in ('Nao iniciado', 'Em andamento', 'Concluido', 'Atrasado'));
+        check (
+            status_plano in (
+                'Não iniciado',
+                'Nao iniciado',
+                'Em andamento',
+                'Concluído',
+                'Concluido',
+                'Atrasado'
+            )
+        );
 
 create index if not exists idx_documentos_area_id on documentos(area_id);
 create index if not exists idx_documentos_status on documentos(status);
@@ -148,7 +164,8 @@ to anon;
 grant insert on
     public.areas,
     public.documentos,
-    public.riscos
+    public.riscos,
+    public.evidencias
 to anon;
 
 do $$
@@ -189,7 +206,7 @@ declare
     target_table text;
     policy_name text;
 begin
-    foreach target_table in array array['areas', 'documentos', 'riscos']
+    foreach target_table in array array['areas', 'documentos', 'riscos', 'evidencias']
     loop
         policy_name := 'anon_insert_' || target_table;
 

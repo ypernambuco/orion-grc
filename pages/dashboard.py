@@ -61,9 +61,9 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
             .execute()
             .data
         )
-    except Exception as exc:
+    except Exception:
         render_status_message(
-            f"Não foi possível carregar os dados do Supabase: {exc}",
+            "Não foi possível carregar os dados corporativos no momento.",
             title="Dados indisponíveis",
             kind="error",
         )
@@ -660,8 +660,8 @@ areas_df, documentos_df, riscos_df = remove_non_corporate_demo_residue(
 
 if get_supabase() is None:
     render_status_message(
-        "Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets para carregar os dados.",
-        title="Conexão de dados pendente",
+        "Recurso em configuração administrativa.",
+        title="Dados corporativos",
         kind="warning",
     )
 

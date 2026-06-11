@@ -155,9 +155,10 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 
 - Evidence registration linked to at least one document or risk
 - PDF, DOCX, XLSX, PNG and JPG upload validation
+- Persistent private Storage upload with the saved object path in `url_arquivo`
 - Coverage indicators and evidence distribution by type
 - Operational listing by document, risk, owner and date
-- Session-mode fallback while the public Supabase role has no evidence insert policy or storage bucket
+- Safe temporary file fallback when permanent upload is unavailable
 
 ---
 
@@ -310,6 +311,44 @@ Never commit `.env`, credentials or Supabase secrets.
 
 ---
 
+## Production setup
+
+Apply the production migrations in this order through the Supabase SQL Editor:
+
+```text
+database/migrations/2026_06_risk_treatment.sql
+database/migrations/2026_06_evidence_storage.sql
+```
+
+The first migration adds the nullable Risk Treatment fields and their status
+validation without recreating `riscos` or deleting existing data. The second
+creates the private `evidencias` bucket, limits supported uploads to 20 MB,
+enables evidence metadata insertion and adds the minimum Storage policies used
+by the public demo.
+
+Configure these application variables:
+
+```env
+SUPABASE_URL=
+SUPABASE_KEY=
+```
+
+Use only the public anon key in the Streamlit application. Keep
+`SUPABASE_SERVICE_ROLE_KEY` restricted to trusted local administrative scripts;
+never expose it in Streamlit secrets, client code, logs or commits.
+
+After applying the migrations, run:
+
+```bash
+python scripts/audit_remote_schema.py
+```
+
+For a sensitive production deployment, replace public demo access with
+authenticated authorization and review the Evidence Storage policies before
+storing confidential files.
+
+---
+
 ## Security Notes
 
 - `.env` must remain ignored by Git
@@ -387,13 +426,13 @@ The optional `auth_user_id` column in `usuarios` can be connected to `auth.users
 - [x] Risk Intelligence
 - [x] Risk Treatment & Action Plans
 - [x] Evidence Management Foundation
+- [x] Persistent evidence upload foundation
 - [x] Access Control Foundation
 - [x] Manual corporate demo seed
 - [x] Production demo on Streamlit Cloud
 - [ ] Authentication
 - [ ] Authenticated role-based access control
 - [ ] Multi-company workspace
-- [ ] Evidence upload
 - [ ] Advanced audit trail
 - [ ] Automated alerts
 - [ ] Operational AI assistant
