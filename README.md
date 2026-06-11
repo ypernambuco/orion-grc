@@ -82,6 +82,7 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 - Area-based tracking
 - Areas Intelligence with operational metrics, rankings and automated insights
 - Document lifecycle management
+- Documents Intelligence with compliance metrics, priorities and automated insights
 - Operational efficiency by area
 - Executive semantic chart colors for document health, risk concentration and performance bands
 - Plotly analytics dashboards
@@ -123,6 +124,11 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 ### Documents
 
 - Document registration
+- Executive document indicators and conformity rate
+- Automated Document Intelligence by area and owner
+- Document priorities for expired, pending and near-expiration items
+- Positive document highlights
+- Operational document listing without technical UUID columns
 - Category, owner, expiration date and status
 - Support for contracts, policies, procedures, reports, flowcharts, KPIs and audit files
 
@@ -319,6 +325,7 @@ The optional `auth_user_id` column in `usuarios` can be connected to `auth.users
 - [x] Areas Intelligence
 - [x] Area management
 - [x] Document management
+- [x] Documents Intelligence
 - [x] Risk management
 - [x] Manual corporate demo seed
 - [x] Production demo on Streamlit Cloud
