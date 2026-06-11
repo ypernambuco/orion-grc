@@ -609,6 +609,108 @@ on conflict (id) do update set
     classificacao = excluded.classificacao,
     escopo_acesso = excluded.escopo_acesso;
 
+with planos_acao_demo (
+    risco_id,
+    plano_acao,
+    responsavel_plano,
+    dias_prazo,
+    status_plano
+) as (
+    values
+        (
+            '22222222-2222-4222-8222-222222222001',
+            'Implementar MFA corporativo e revisar controles de acesso.',
+            'Equipe de Seguranca',
+            30,
+            'Em andamento'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222002',
+            'Executar testes de restauracao e formalizar evidencias mensais.',
+            'Infraestrutura',
+            -10,
+            'Concluido'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222003',
+            'Revisar acessos privilegiados e reduzir credenciais permanentes.',
+            'Equipe de Seguranca',
+            -5,
+            'Atrasado'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222004',
+            'Formalizar plano de contingencia para fornecedores estrategicos.',
+            null,
+            45,
+            'Nao iniciado'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222005',
+            'Completar evidencias LGPD e revisar bases legais prioritarias.',
+            'DPO',
+            20,
+            'Em andamento'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222007',
+            'Atualizar plano de continuidade e executar simulacao operacional.',
+            'Operacoes',
+            60,
+            'Nao iniciado'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222008',
+            'Consolidar evidencias dos controles chave de auditoria.',
+            'Auditoria Interna',
+            -15,
+            'Atrasado'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222009',
+            'Revisar homologacao e due diligence dos fornecedores ativos.',
+            'Compras',
+            -5,
+            'Concluido'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222010',
+            'Automatizar aprovacao financeira e reforcar limites de alcada.',
+            'Controladoria',
+            25,
+            'Em andamento'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222012',
+            'Reforcar treinamento e monitorar adesao a politica corporativa.',
+            'Compliance',
+            10,
+            'Em andamento'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222016',
+            'Regularizar planos de acao pendentes da auditoria interna.',
+            'Auditoria Interna',
+            -3,
+            'Atrasado'
+        ),
+        (
+            '22222222-2222-4222-8222-222222222017',
+            'Corrigir lancamento e reforcar conciliacao automatizada.',
+            'Financeiro',
+            -20,
+            'Concluido'
+        )
+)
+update riscos
+set
+    plano_acao = planos_acao_demo.plano_acao,
+    responsavel_plano = planos_acao_demo.responsavel_plano,
+    prazo_plano = current_date + planos_acao_demo.dias_prazo,
+    status_plano = planos_acao_demo.status_plano
+from planos_acao_demo
+where riscos.id = planos_acao_demo.risco_id::uuid;
+
 with evidencias_demo (
     id,
     documento_id,

@@ -79,6 +79,8 @@ DISPLAY_LABELS = {
     "Medio": "Médio",
     "Critico": "Crítico",
     "Em revisao": "Em revisão",
+    "Nao iniciado": "Não iniciado",
+    "Concluido": "Concluído",
     "Politica": "Política",
     "Relatorio": "Relatório",
     "Juridico": "Jurídico",
@@ -207,6 +209,9 @@ COLUMN_LABELS = {
     "impacto": "Impacto",
     "risco": "Score",
     "classificacao": "Classificação",
+    "responsavel_plano": "Responsável",
+    "prazo_plano": "Prazo",
+    "status_plano": "Status do plano",
     "tipo": "Tipo",
     "documento": "Documento associado",
     "risco_associado": "Risco associado",
@@ -230,6 +235,11 @@ BADGE_STYLES = {
     "Pendente": "orion-badge-pending",
     "Vencido": "orion-badge-expired",
     "Em revisão": "orion-badge-review",
+    "Não iniciado": "orion-badge-neutral",
+    "Em andamento": "orion-badge-pending",
+    "Concluído": "orion-badge-active",
+    "Atrasado": "orion-badge-expired",
+    "Sem plano": "orion-badge-neutral",
 }
 
 
@@ -271,7 +281,7 @@ def render_data_table(df, columns, height: Optional[int] = None) -> None:
         f"<th>{escape(str(column))}</th>" for column in display_df.columns
     )
     rows_html = []
-    badge_columns = {"Status", "Classificação"}
+    badge_columns = {"Status", "Classificação", "Status do plano"}
     for _, row in display_df.iterrows():
         cells = []
         for column, value in row.items():

@@ -140,6 +140,7 @@ def parse_seed(sql: str) -> dict[str, list[dict[str, Any]]]:
     area_rows = parse_values_block(sql, "seed_areas")
     document_rows = parse_values_block(sql, "documentos_demo")
     risk_rows = parse_values_block(sql, "riscos_demo")
+    action_plan_rows = parse_values_block(sql, "planos_acao_demo")
     evidence_rows = parse_values_block(sql, "evidencias_demo")
 
     document_columns = [
@@ -162,6 +163,13 @@ def parse_seed(sql: str) -> dict[str, list[dict[str, Any]]]:
         "classificacao",
         "escopo_acesso",
     ]
+    action_plan_columns = [
+        "risco_id",
+        "plano_acao",
+        "responsavel_plano",
+        "dias_prazo",
+        "status_plano",
+    ]
     evidence_columns = [
         "id",
         "documento_id",
@@ -171,10 +179,23 @@ def parse_seed(sql: str) -> dict[str, list[dict[str, Any]]]:
         "url_arquivo",
     ]
 
+    action_plans = {
+        item["risco_id"]: item
+        for item in [
+            dict(zip(action_plan_columns, row))
+            for row in action_plan_rows
+        ]
+    }
+    risks = []
+    for row in risk_rows:
+        risk = dict(zip(risk_columns, row))
+        risk.update(action_plans.get(risk["id"], {}))
+        risks.append(risk)
+
     return {
         "areas": [{"nome": row[0]} for row in area_rows],
         "documentos": [dict(zip(document_columns, row)) for row in document_rows],
-        "riscos": [dict(zip(risk_columns, row)) for row in risk_rows],
+        "riscos": risks,
         "evidencias": [dict(zip(evidence_columns, row)) for row in evidence_rows],
     }
 
@@ -242,6 +263,14 @@ def load_demo_data() -> None:
                 "risco": risk["risco"],
                 "classificacao": risk["classificacao"],
                 "escopo_acesso": risk["escopo_acesso"],
+                "plano_acao": risk.get("plano_acao"),
+                "responsavel_plano": risk.get("responsavel_plano"),
+                "prazo_plano": (
+                    (today + timedelta(days=risk["dias_prazo"])).isoformat()
+                    if risk.get("dias_prazo") is not None
+                    else None
+                ),
+                "status_plano": risk.get("status_plano"),
             }
         )
 

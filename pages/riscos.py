@@ -21,6 +21,14 @@ from services.ui import (
 
 st.set_page_config(page_title="ORION GRC | Riscos", layout="wide")
 
+ACTION_PLAN_STATUS_OPTIONS = ["Nao iniciado", "Em andamento", "Concluido", "Atrasado"]
+ACTION_PLAN_COLUMNS = [
+    "plano_acao",
+    "responsavel_plano",
+    "prazo_plano",
+    "status_plano",
+]
+
 
 def classify_risk(score: int) -> str:
     if score <= 4:
@@ -48,27 +56,44 @@ def load_areas() -> list[dict]:
     ]
 
 
-def load_riscos() -> pd.DataFrame:
+def load_riscos() -> tuple[pd.DataFrame, bool]:
     supabase = get_supabase()
     if supabase is None:
-        return pd.DataFrame()
+        return pd.DataFrame(), False
     try:
         data = (
             supabase.table("riscos")
-            .select("id, descricao, probabilidade, impacto, risco, classificacao, areas(nome)")
+            .select(
+                "id, descricao, probabilidade, impacto, risco, classificacao, "
+                "plano_acao, responsavel_plano, prazo_plano, status_plano, areas(nome)"
+            )
             .order("risco", desc=True)
             .execute()
             .data
         )
-    except Exception as exc:
-        st.error(f"Não foi possível carregar os riscos: {exc}")
-        return pd.DataFrame()
+        treatment_available = True
+    except Exception as treatment_exc:
+        try:
+            data = (
+                supabase.table("riscos")
+                .select("id, descricao, probabilidade, impacto, risco, classificacao, areas(nome)")
+                .order("risco", desc=True)
+                .execute()
+                .data
+            )
+            treatment_available = False
+        except Exception:
+            st.error(f"Não foi possível carregar os riscos: {treatment_exc}")
+            return pd.DataFrame(), False
     df = pd.DataFrame(data)
+    for column in ACTION_PLAN_COLUMNS:
+        if column not in df:
+            df[column] = None
     if not df.empty and "areas" in df:
         df["area"] = df["areas"].apply(
             lambda item: item.get("nome") if isinstance(item, dict) else "Sem área"
         )
-    return filter_non_corporate_area_rows(df, "area")
+    return filter_non_corporate_area_rows(df, "area"), treatment_available
 
 
 def enrich_riscos(riscos_df: pd.DataFrame) -> pd.DataFrame:
@@ -91,6 +116,47 @@ def enrich_riscos(riscos_df: pd.DataFrame) -> pd.DataFrame:
         enriched.get("risco", pd.Series(index=enriched.index, dtype=float)),
         errors="coerce",
     ).fillna(0)
+    plan = enriched.get("plano_acao", pd.Series(index=enriched.index, dtype=str))
+    owner = enriched.get(
+        "responsavel_plano",
+        pd.Series(index=enriched.index, dtype=str),
+    )
+    status_plan = enriched.get(
+        "status_plano",
+        pd.Series(index=enriched.index, dtype=str),
+    )
+    deadline = pd.to_datetime(
+        enriched.get("prazo_plano", pd.Series(index=enriched.index, dtype=str)),
+        errors="coerce",
+    )
+    today = pd.Timestamp.today().normalize()
+    enriched["com_plano"] = plan.fillna("").astype(str).str.strip().ne("")
+    enriched["sem_responsavel_plano"] = (
+        enriched["com_plano"] & owner.fillna("").astype(str).str.strip().eq("")
+    )
+    enriched["status_plano_normalizado"] = (
+        status_plan.fillna("").astype(str).str.strip().str.lower()
+    )
+    enriched["plano_em_andamento"] = enriched["status_plano_normalizado"].eq(
+        "em andamento"
+    )
+    enriched["plano_concluido"] = enriched["status_plano_normalizado"].isin(
+        ["concluido", "concluído"]
+    )
+    enriched["plano_atrasado"] = (
+        enriched["status_plano_normalizado"].eq("atrasado")
+        | (enriched["com_plano"] & deadline.lt(today) & ~enriched["plano_concluido"])
+    )
+    enriched["plano_em_andamento"] = (
+        enriched["plano_em_andamento"] & ~enriched["plano_atrasado"]
+    )
+    enriched["plano_proximo_prazo"] = (
+        enriched["plano_em_andamento"]
+        & deadline.ge(today)
+        & deadline.le(today + pd.Timedelta(days=30))
+    )
+    enriched["status_plano"] = status_plan.where(enriched["com_plano"], "Sem plano")
+    enriched.loc[enriched["plano_atrasado"], "status_plano"] = "Atrasado"
     return enriched
 
 
@@ -106,6 +172,15 @@ def calculate_risk_metrics(riscos_df: pd.DataFrame) -> dict[str, object]:
             "baixos": 0,
             "controlados": 0,
             "exposicao_media": 0,
+            "com_plano": 0,
+            "sem_plano": 0,
+            "planos_em_andamento": 0,
+            "planos_concluidos": 0,
+            "planos_atrasados": 0,
+            "planos_proximos_prazo": 0,
+            "criticos_sem_plano": 0,
+            "criticos_com_plano": 0,
+            "sem_responsavel_plano": 0,
             "data": enriched,
         }
 
@@ -120,8 +195,126 @@ def calculate_risk_metrics(riscos_df: pd.DataFrame) -> dict[str, object]:
         "baixos": baixos,
         "controlados": baixos + medios,
         "exposicao_media": round(float(enriched["score"].mean()), 1),
+        "com_plano": int(enriched["com_plano"].sum()),
+        "sem_plano": int((~enriched["com_plano"]).sum()),
+        "planos_em_andamento": int(enriched["plano_em_andamento"].sum()),
+        "planos_concluidos": int(enriched["plano_concluido"].sum()),
+        "planos_atrasados": int(enriched["plano_atrasado"].sum()),
+        "planos_proximos_prazo": int(enriched["plano_proximo_prazo"].sum()),
+        "criticos_sem_plano": int(
+            (enriched["nivel"].eq("critico") & ~enriched["com_plano"]).sum()
+        ),
+        "criticos_com_plano": int(
+            (enriched["nivel"].eq("critico") & enriched["com_plano"]).sum()
+        ),
+        "sem_responsavel_plano": int(enriched["sem_responsavel_plano"].sum()),
         "data": enriched,
     }
+
+
+def generate_treatment_insights(metrics: dict[str, object]) -> list[dict[str, str]]:
+    if not int(metrics["total"]):
+        return []
+
+    insights = []
+    if int(metrics["criticos_sem_plano"]):
+        insights.append(
+            {
+                "label": "Criticidade sem tratamento",
+                "title": f"{metrics['criticos_sem_plano']} risco(s) crítico(s)",
+                "message": "Existem riscos críticos sem plano de ação definido.",
+            }
+        )
+    if int(metrics["planos_atrasados"]):
+        insights.append(
+            {
+                "label": "Planos atrasados",
+                "title": str(metrics["planos_atrasados"]),
+                "message": "Existem planos fora do prazo que exigem acompanhamento.",
+            }
+        )
+    critical_total = int(metrics["criticos"])
+    if critical_total:
+        treated_share = round(
+            (int(metrics["criticos_com_plano"]) / critical_total) * 100,
+            1,
+        )
+        insights.append(
+            {
+                "label": "Tratamento de riscos críticos",
+                "title": f"{treated_share}%",
+                "message": (
+                    "A maior parte dos riscos críticos possui tratamento definido."
+                    if treated_share >= 50
+                    else "Menos da metade dos riscos críticos possui tratamento definido."
+                ),
+            }
+        )
+    if int(metrics["sem_responsavel_plano"]):
+        insights.append(
+            {
+                "label": "Responsabilidade",
+                "title": f"{metrics['sem_responsavel_plano']} plano(s)",
+                "message": "Existem planos de ação sem responsável definido.",
+            }
+        )
+    if not insights and int(metrics["com_plano"]):
+        insights.append(
+            {
+                "label": "Tratamento monitorado",
+                "title": f"{metrics['com_plano']} plano(s)",
+                "message": "Os planos atuais possuem responsáveis e não apresentam atrasos.",
+            }
+        )
+    return insights[:4]
+
+
+def generate_treatment_priorities(metrics: dict[str, object]) -> list[dict[str, str]]:
+    if not int(metrics["total"]):
+        return []
+
+    priorities = []
+    if int(metrics["criticos_sem_plano"]):
+        priorities.append(
+            {
+                "priority": "Alta Prioridade",
+                "title": "Definir planos para riscos críticos",
+                "message": f"{metrics['criticos_sem_plano']} risco(s) crítico(s) ainda não possuem tratamento.",
+            }
+        )
+    if int(metrics["planos_atrasados"]):
+        priorities.append(
+            {
+                "priority": "Alta Prioridade",
+                "title": "Regularizar planos atrasados",
+                "message": f"{metrics['planos_atrasados']} plano(s) ultrapassaram o prazo.",
+            }
+        )
+    if int(metrics["planos_proximos_prazo"]):
+        priorities.append(
+            {
+                "priority": "Média Prioridade",
+                "title": "Acompanhar próximos prazos",
+                "message": f"{metrics['planos_proximos_prazo']} plano(s) em andamento vencem nos próximos 30 dias.",
+            }
+        )
+    if int(metrics["planos_concluidos"]):
+        priorities.append(
+            {
+                "priority": "Baixa Prioridade",
+                "title": "Preservar tratamentos concluídos",
+                "message": f"{metrics['planos_concluidos']} plano(s) foram concluídos.",
+            }
+        )
+    if not priorities:
+        priorities.append(
+            {
+                "priority": "Média Prioridade",
+                "title": "Estruturar tratamento de riscos",
+                "message": f"{metrics['sem_plano']} risco(s) ainda não possuem plano de ação.",
+            }
+        )
+    return priorities[:4]
 
 
 def _risk_area_summary(enriched: pd.DataFrame) -> pd.DataFrame:
@@ -378,6 +571,15 @@ area_options = {area["nome"]: area["id"] for area in areas}
 if supabase is None:
     st.warning("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env ou em st.secrets.")
 
+with st.spinner("Carregando inteligência de riscos..."):
+    riscos_df, treatment_available = load_riscos()
+if supabase is not None and not treatment_available:
+    st.warning(
+        "A fundação de tratamento está pronta, mas as colunas de plano de ação ainda "
+        "não existem no Supabase atual. Aplique database/schema.sql para habilitar "
+        "cadastro e persistência dos planos."
+    )
+
 st.markdown("### Novo risco")
 st.markdown(
     '<p class="orion-section">Registre eventos que podem afetar continuidade, conformidade ou eficiência.</p>',
@@ -399,6 +601,31 @@ with st.form("form_risco", clear_on_submit=True):
         st.metric("Score de risco", risco, display_label(classificacao), delta_color="off")
         st.markdown(badge_html(classificacao), unsafe_allow_html=True)
 
+    adicionar_plano = st.checkbox(
+        "Adicionar plano de ação",
+        disabled=not treatment_available,
+        help=(
+            "Aplique database/schema.sql para habilitar planos de ação."
+            if not treatment_available
+            else "Inclua o tratamento inicial junto ao cadastro do risco."
+        ),
+    )
+    plano_acao = ""
+    responsavel_plano = ""
+    prazo_plano = None
+    status_plano = None
+    if adicionar_plano:
+        st.markdown("#### Tratamento inicial")
+        plano_acao = st.text_area("Plano de ação")
+        plan_col1, plan_col2, plan_col3 = st.columns(3)
+        responsavel_plano = plan_col1.text_input("Responsável pelo plano")
+        prazo_plano = plan_col2.date_input("Prazo do plano")
+        status_plano = plan_col3.selectbox(
+            "Status do plano",
+            ACTION_PLAN_STATUS_OPTIONS,
+            format_func=display_label,
+        )
+
     submitted = st.form_submit_button("Cadastrar risco")
     if submitted:
         if supabase is None:
@@ -407,29 +634,39 @@ with st.form("form_risco", clear_on_submit=True):
             st.error("Cadastre uma área antes de registrar riscos.")
         elif not descricao.strip():
             st.error("Informe a descrição do risco.")
+        elif adicionar_plano and not plano_acao.strip():
+            st.error("Informe o plano de ação.")
         else:
             try:
-                supabase.table("riscos").insert(
-                    {
-                        "area_id": area_options[area_nome],
-                        "descricao": descricao.strip(),
-                        "probabilidade": probabilidade,
-                        "impacto": impacto,
-                        "risco": risco,
-                        "classificacao": classificacao,
-                    }
-                ).execute()
+                payload = {
+                    "area_id": area_options[area_nome],
+                    "descricao": descricao.strip(),
+                    "probabilidade": probabilidade,
+                    "impacto": impacto,
+                    "risco": risco,
+                    "classificacao": classificacao,
+                }
+                if adicionar_plano:
+                    payload.update(
+                        {
+                            "plano_acao": plano_acao.strip(),
+                            "responsavel_plano": responsavel_plano.strip() or None,
+                            "prazo_plano": prazo_plano.isoformat(),
+                            "status_plano": status_plano,
+                        }
+                    )
+                supabase.table("riscos").insert(payload).execute()
                 st.success("Risco cadastrado com sucesso.")
                 st.rerun()
             except Exception as exc:
                 st.error(f"Não foi possível cadastrar o risco: {exc}")
 
-with st.spinner("Carregando inteligência de riscos..."):
-    riscos_df = load_riscos()
 risk_metrics = calculate_risk_metrics(riscos_df)
 risk_insights = generate_risk_insights(risk_metrics)
 risk_priorities = generate_risk_priorities(risk_metrics)
 risk_highlights = generate_risk_positive_highlights(risk_metrics)
+treatment_insights = generate_treatment_insights(risk_metrics)
+treatment_priorities = generate_treatment_priorities(risk_metrics)
 
 st.markdown('<div class="orion-section-break"></div>', unsafe_allow_html=True)
 st.markdown("## Visão executiva de riscos")
@@ -450,6 +687,78 @@ for offset in range(0, len(metric_cards), 3):
     for column, card in zip(metric_cols, metric_cards[offset : offset + 3]):
         with column:
             render_kpi_card(*card)
+
+st.markdown("### Risk Treatment")
+st.markdown(
+    '<p class="orion-section">Indicadores executivos sobre cobertura, andamento e cumprimento dos planos de ação.</p>',
+    unsafe_allow_html=True,
+)
+treatment_cards = [
+    ("Riscos com plano", str(risk_metrics["com_plano"]), "Riscos com tratamento definido."),
+    ("Riscos sem plano", str(risk_metrics["sem_plano"]), "Riscos ainda sem tratamento."),
+    (
+        "Planos em andamento",
+        str(risk_metrics["planos_em_andamento"]),
+        "Tratamentos em execução.",
+    ),
+    (
+        "Planos concluídos",
+        str(risk_metrics["planos_concluidos"]),
+        "Tratamentos finalizados.",
+    ),
+    (
+        "Planos atrasados",
+        str(risk_metrics["planos_atrasados"]),
+        "Tratamentos fora do prazo.",
+    ),
+]
+for offset in range(0, len(treatment_cards), 3):
+    treatment_cols = st.columns(3)
+    for column, card in zip(treatment_cols, treatment_cards[offset : offset + 3]):
+        with column:
+            render_kpi_card(*card)
+
+st.markdown("### Risk Treatment Intelligence")
+st.markdown(
+    '<p class="orion-section">Leituras automáticas sobre cobertura de tratamento, atrasos e responsabilidades.</p>',
+    unsafe_allow_html=True,
+)
+if treatment_insights:
+    treatment_insight_cols = st.columns(len(treatment_insights))
+    for column, insight in zip(treatment_insight_cols, treatment_insights):
+        with column:
+            render_insight_card(
+                insight["label"],
+                insight["title"],
+                insight["message"],
+            )
+else:
+    render_empty_state(
+        "Inteligência de tratamento ainda indisponível",
+        "Cadastre riscos e planos de ação para habilitar análises de tratamento.",
+        "Riscos críticos com tratamento definido melhoram a cobertura da matriz.",
+    )
+
+st.markdown("### Treatment Priorities")
+st.markdown(
+    '<p class="orion-section">Priorização automática conforme criticidade, atraso, prazo e conclusão dos planos.</p>',
+    unsafe_allow_html=True,
+)
+if treatment_priorities:
+    treatment_priority_cols = st.columns(len(treatment_priorities))
+    for column, priority in zip(treatment_priority_cols, treatment_priorities):
+        with column:
+            render_priority_card(
+                priority["priority"],
+                priority["title"],
+                priority["message"],
+            )
+else:
+    render_empty_state(
+        "Prioridades de tratamento ainda indisponíveis",
+        "A matriz está vazia e ainda não permite priorizar planos de ação.",
+        "Cadastre riscos para estruturar o tratamento.",
+    )
 
 st.markdown("### Risk Intelligence")
 st.markdown(
@@ -553,5 +862,15 @@ if riscos_df.empty:
         "Comece pelos eventos com maior impacto operacional, contratual ou regulatório.",
     )
 else:
-    columns = ["area", "descricao", "probabilidade", "impacto", "risco", "classificacao"]
-    render_data_table(riscos_df, columns)
+    columns = [
+        "area",
+        "descricao",
+        "probabilidade",
+        "impacto",
+        "risco",
+        "classificacao",
+        "responsavel_plano",
+        "prazo_plano",
+        "status_plano",
+    ]
+    render_data_table(risk_metrics["data"], columns)

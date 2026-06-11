@@ -81,6 +81,7 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 - Risk scoring by probability and impact
 - Risk classification: Low, Medium, High and Critical
 - Risk Intelligence with exposure metrics, priorities, distribution and automated insights
+- Risk Treatment with action plans, owners, deadlines, statuses and automated priorities
 - Evidence Management Foundation with linked records, uploads and coverage indicators
 - Access Control Foundation with profile-based navigation and direct URL protection
 - Area-based tracking
@@ -144,8 +145,11 @@ ORION GRC turns this into a single dashboard with documents, areas, risks and op
 - Executive indicators by classification and average exposure
 - Automated Risk Intelligence by area, concentration and matrix distribution
 - Risk priorities and positive control highlights
+- Action plan registration during risk creation
+- Risk Treatment indicators, intelligence and treatment priorities
+- Semantic action plan statuses: Not Started, In Progress, Completed and Overdue
 - Semantic Risk Distribution with Low, Medium, High and Critical levels
-- Operational risk listing without technical UUID columns
+- Operational risk listing with treatment owner, deadline and status without technical UUID columns
 
 ### Evidence
 
@@ -256,6 +260,10 @@ SUPABASE_KEY = "your-anon-public-key"
 database/schema.sql
 ```
 
+Re-run this idempotent schema after updates to enable new foundations such as
+Risk Treatment fields. The application remains compatible with an older schema,
+but action plan persistence is enabled only after the current schema is applied.
+
 6. Optionally load the corporate demo seed:
 
 Add `SUPABASE_SERVICE_ROLE_KEY` to your local `.env`, then run:
@@ -363,6 +371,7 @@ The optional `auth_user_id` column in `usuarios` can be connected to `auth.users
 - [x] Documents Intelligence
 - [x] Risk management
 - [x] Risk Intelligence
+- [x] Risk Treatment & Action Plans
 - [x] Evidence Management Foundation
 - [x] Access Control Foundation
 - [x] Manual corporate demo seed

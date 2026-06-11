@@ -58,6 +58,12 @@ create table if not exists riscos (
     impacto integer not null check (impacto between 1 and 5),
     risco integer not null check (risco between 1 and 25),
     classificacao text not null check (classificacao in ('Baixo', 'Medio', 'Alto', 'Critico')),
+    plano_acao text,
+    responsavel_plano text,
+    prazo_plano date,
+    status_plano text check (
+        status_plano in ('Nao iniciado', 'Em andamento', 'Concluido', 'Atrasado')
+    ),
     escopo_acesso text not null default 'geral'
         check (escopo_acesso in ('geral', 'area', 'juridico', 'restrito')),
     created_by uuid references usuarios(id) on delete set null,
@@ -100,6 +106,19 @@ alter table riscos
 alter table riscos
     add column if not exists created_by uuid references usuarios(id) on delete set null;
 
+alter table riscos
+    add column if not exists plano_acao text;
+
+alter table riscos
+    add column if not exists responsavel_plano text;
+
+alter table riscos
+    add column if not exists prazo_plano date;
+
+alter table riscos
+    add column if not exists status_plano text
+        check (status_plano in ('Nao iniciado', 'Em andamento', 'Concluido', 'Atrasado'));
+
 create index if not exists idx_documentos_area_id on documentos(area_id);
 create index if not exists idx_documentos_status on documentos(status);
 create index if not exists idx_documentos_vencimento on documentos(vencimento);
@@ -107,6 +126,7 @@ create index if not exists idx_documentos_escopo_acesso on documentos(escopo_ace
 create index if not exists idx_riscos_area_id on riscos(area_id);
 create index if not exists idx_riscos_classificacao on riscos(classificacao);
 create index if not exists idx_riscos_escopo_acesso on riscos(escopo_acesso);
+create index if not exists idx_riscos_status_plano on riscos(status_plano);
 create index if not exists idx_usuarios_perfil_codigo on usuarios(perfil_codigo);
 create index if not exists idx_usuarios_area_id on usuarios(area_id);
 create index if not exists idx_evidencias_documento_id on evidencias(documento_id);
