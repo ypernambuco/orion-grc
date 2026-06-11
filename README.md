@@ -320,6 +320,21 @@ database/migrations/2026_06_risk_treatment.sql
 database/migrations/2026_06_evidence_storage.sql
 ```
 
+For automated application, configure an administrative PostgreSQL connection
+string locally and run:
+
+```env
+SUPABASE_DB_URL=
+```
+
+```bash
+python scripts/apply_migrations.py
+```
+
+The script applies only the two migrations above, does not print credentials,
+and validates Risk Treatment persistence, Evidence Storage configuration and
+existing evidence records after execution.
+
 The first migration adds the nullable Risk Treatment fields and their status
 validation without recreating `riscos` or deleting existing data. The second
 creates the private `evidencias` bucket, limits supported uploads to 20 MB,
